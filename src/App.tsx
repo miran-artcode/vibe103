@@ -1018,7 +1018,7 @@ const LIVEQ_BANK = [
       "받은 코드를 실행하거나 배포(내 주소로 공개)까지 해봤어요",
       "이미 수업·업무에 만들어 쓰고 있어요"], a: null,
     explain: "정답이 없는 설문이에요 😊 어디에 계시든 괜찮습니다. 오늘 3시간이면 '처음 들어봤어요'에서 '배포까지 해봤어요'로 갈 수 있어요!" },
-  { cat: "icebreak", survey: true, etc: true, q: "🎯 오늘 강의에서 가장 얻어가고 싶은 것은 무엇인가요?", o: [
+  { cat: "icebreak", survey: true, etc: true, liveShow: true, anon: true, q: "🎯 오늘 강의에서 가장 얻어가고 싶은 것은 무엇인가요?", o: [
       "AI로 앱을 만드는 전 과정을 한번 경험해 보기",
       "수업·학급 운영에 바로 쓸 나만의 도구 만들기",
       "개인정보·보안 걱정 없이 안전하게 쓰는 방법",
@@ -2788,8 +2788,7 @@ export default function App() {
         : <FollowCast me={me} setTab={setTab} setActiveTerm={setActiveTerm} />}
       {/* 공유 작품 발표 모드 — 발표가 시작되면 모두의 화면에 전체 화면으로 */}
       <PresentOverlay me={me} adminOk={adminOk} />
-      {/* 세션 전체 채팅 — 모든 참여자 공용 */}
-      <ChatFab me={me} />
+      {/* 세션 채팅은 main.tsx의 ChatWidget(실시간 구독)이 담당 */}
       <GlobalStyle />
     </div>
   );
@@ -3886,7 +3885,7 @@ function LiveQuizOverlay({ me }) {
    ============================================================ */
 async function qzLaunch(s, item, dur) {
   const id = "q" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-  const quiz = { id, cat: item.cat, q: item.q, o: item.o, a: item.a, survey: !!item.survey, etc: !!item.etc, explain: item.explain || "", startTs: Date.now(), dur, phase: "live" };
+  const quiz = { id, cat: item.cat, q: item.q, o: item.o, a: item.a, survey: !!item.survey, etc: !!item.etc, liveShow: !!item.liveShow, anon: !!item.anon, explain: item.explain || "", startTs: Date.now(), dur, phase: "live" };
   await sSet(`qz_ans_${s}_${id}`, [], true);
   await sSet(`qz_live_${s}`, quiz, true);
   return quiz;
@@ -4404,128 +4403,7 @@ function PresentOverlay({ me, adminOk }) {
   );
 }
 
-/* ============================================================
-   CHAT — 세션 전체 채팅 (오른쪽 아래 💬 버튼)
-   - 같은 세션의 모든 선생님·강사가 함께 쓰는 실시간 채팅.
-   - 주소(URL)를 보내면 자동으로 클릭 가능한 링크가 됩니다.
-   - 저장 키: chat_{세션} (최근 200개 유지)
-   ============================================================ */
-function linkify(text) {
-  const re = /(https?:\/\/\S+|\b[\w.-]+\.(?:web\.app|netlify\.app|firebaseapp\.com|github\.io|vercel\.app|co\.kr|com|net|org|kr)(?:\/\S*)?)/gi;
-  const out = []; let last = 0, m, i = 0;
-  while ((m = re.exec(text))) {
-    if (m.index > last) out.push(text.slice(last, m.index));
-    const raw = m[0];
-    const href = /^https?:\/\//i.test(raw) ? raw : "https://" + raw;
-    out.push(<a key={i++} href={href} target="_blank" rel="noopener noreferrer" className="underline font-bold break-all hover:opacity-80">{raw}</a>);
-    last = re.lastIndex;
-  }
-  if (last < text.length) out.push(text.slice(last));
-  return out;
-}
-
-function ChatFab({ me }) {
-  const s = me.session;
-  const [open, setOpen] = useState(false);
-  const [msgs, setMsgs] = useState([]);
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
-  const seenRef = useRef(Date.now());
-  const boxRef = useRef(null);
-  const openRef = useRef(false);
-  openRef.current = open;
-
-  useEffect(() => {
-    let on = true;
-    const tick = async () => {
-      try {
-        const c = await sGet(`chat_${s}`, true);
-        if (!on) return;
-        const arr = Array.isArray(c) ? c : [];
-        setMsgs(arr);
-        if (openRef.current && arr.length) seenRef.current = Math.max(seenRef.current, arr[arr.length - 1].ts || 0);
-      } catch {}
-    };
-    tick();
-    const id = setInterval(tick, 3500);
-    return () => { on = false; clearInterval(id); };
-  }, [s]);
-
-  // 열려 있으면 새 메시지 때 맨 아래로 스크롤
-  useEffect(() => {
-    if (open && boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight;
-    if (open && msgs.length) seenRef.current = Math.max(seenRef.current, msgs[msgs.length - 1].ts || 0);
-  }, [open, msgs]);
-
-  const unread = open ? 0 : msgs.filter((m) => (m.ts || 0) > seenRef.current && m.uid !== me.uid).length;
-
-  const send = async () => {
-    const t = text.trim();
-    if (!t || busy) return;
-    setBusy(true);
-    try {
-      const entry = { id: Date.now() + "-" + Math.random().toString(36).slice(2, 6), uid: me.uid, nick: me.nick, text: t.slice(0, 500), ts: Date.now() };
-      const cur = (await sGet(`chat_${s}`, true)) || [];
-      const next = [...(Array.isArray(cur) ? cur : []), entry].slice(-200);
-      await sSet(`chat_${s}`, next, true);
-      setMsgs(next); setText("");
-      seenRef.current = entry.ts;
-    } catch {}
-    setBusy(false);
-  };
-
-  if (!STORAGE_OK) return null;
-
-  if (!open)
-    return (
-      <button onClick={() => setOpen(true)} title="세션 채팅 열기" style={{ zIndex: 60 }}
-        className="fixed bottom-4 right-4 w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xl flex items-center justify-center transition-colors">
-        <MessageSquare size={22} />
-        {unread > 0 && <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 rounded-full bg-rose-500 text-[11px] font-bold flex items-center justify-center animate-pulse">{unread > 99 ? "99+" : unread}</span>}
-      </button>
-    );
-
-  return (
-    <div style={{ zIndex: 60 }} className="fixed bottom-4 right-4 w-[min(92vw,340px)] h-[min(70vh,480px)] rounded-2xl bg-white border border-slate-200 shadow-2xl flex flex-col overflow-hidden">
-      <div className="bg-gradient-to-r from-indigo-600 to-indigo-800 px-4 py-3 text-white flex items-center gap-2 shrink-0">
-        <MessageSquare size={16} className="shrink-0" />
-        <div className="min-w-0 flex-1">
-          <div className="font-extrabold text-[13.5px] leading-tight">세션 채팅</div>
-          <div className="text-[10.5px] text-indigo-200 truncate">세션 {s} · 같은 세션 선생님 모두에게 보여요</div>
-        </div>
-        <button onClick={() => setOpen(false)} title="접기" className="w-7 h-7 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center shrink-0"><X size={14} /></button>
-      </div>
-
-      <div ref={boxRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5 bg-slate-50">
-        {msgs.length === 0 ? (
-          <p className="text-[12px] text-slate-400 text-center pt-8 leading-relaxed">아직 메시지가 없어요.<br />첫 인사를 남겨 보세요! 👋</p>
-        ) : msgs.map((m) => {
-          const mine = m.uid === me.uid;
-          return (
-            <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-              {!mine && <span className="text-[10.5px] font-bold text-slate-400 mb-0.5 px-1">{m.nick}</span>}
-              <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap break-words ${mine ? "bg-indigo-600 text-white rounded-br-md" : "bg-white border border-slate-200 text-slate-700 rounded-bl-md"}`}>
-                {linkify(m.text || "")}
-              </div>
-              <span className="text-[9.5px] text-slate-300 mt-0.5 px-1">{new Date(m.ts).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</span>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="p-2.5 bg-white border-t border-slate-100 flex items-center gap-2 shrink-0">
-        <input value={text} onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) send(); }}
-          placeholder="메시지 또는 주소 입력…"
-          className="flex-1 px-3 py-2 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none text-[13px]" />
-        <button onClick={send} disabled={busy || !text.trim()}
-          className="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center disabled:opacity-40 shrink-0" title="보내기">
-          <Send size={15} />
-        </button>
-      </div>
-    </div>
-  );
-}
+/* 세션 채팅은 src/ChatWidget.tsx(실시간 onSnapshot 구독)가 담당합니다. */
 
 /* ============================================================
    ADMIN — 운영자(슈퍼관리자) 페이지 (비밀번호 보호)
