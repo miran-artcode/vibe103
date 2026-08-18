@@ -1206,6 +1206,36 @@ function CopyBtn({ text, label = "복사", small = false }) {
 }
 
 /* ============================================================
+   OVERLAY 공통 — 모달이 열려 있는 동안:
+   - Esc 키로 닫기 (여러 모달이 겹치면 맨 위 것만 닫힘)
+   - 뒤 배경(body) 스크롤 잠금
+   ============================================================ */
+const overlayStack = [];
+let overlayPrevOverflow = "";
+function useOverlay(onClose, onKeyExtra) {
+  const closeRef = useRef(onClose); closeRef.current = onClose;
+  const extraRef = useRef(onKeyExtra); extraRef.current = onKeyExtra;
+  useEffect(() => {
+    const entry = {};
+    overlayStack.push(entry);
+    if (overlayStack.length === 1) { overlayPrevOverflow = document.body.style.overflow; document.body.style.overflow = "hidden"; }
+    const onKey = (e) => {
+      if (overlayStack[overlayStack.length - 1] !== entry) return; // 맨 위 모달만 반응
+      if (e.key === "Escape") { if (closeRef.current) closeRef.current(); }
+      else if (extraRef.current) extraRef.current(e);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      const i = overlayStack.indexOf(entry); if (i >= 0) overlayStack.splice(i, 1);
+      if (overlayStack.length === 0) document.body.style.overflow = overlayPrevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, []); // eslint-disable-line
+}
+/* 조건부로 렌더되는 모달 안에 넣어 쓰는 래퍼 — 마운트되는 동안만 Esc·스크롤 잠금 적용 */
+function ModalHotkeys({ onClose, onKey }) { useOverlay(onClose, onKey); return null; }
+
+/* ============================================================
    HELP — 친근한 도움말(❓): 쉬운 설명 + 비유 + 예시
    처음 접하는 선생님을 위해, 누르면 풀어서 설명합니다.
    ============================================================ */
@@ -1278,6 +1308,7 @@ function HelpDot({ k }) {
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); setOpen(true); } }}>?</span>
       {open && (
         <div className="help-back" onClick={() => setOpen(false)}>
+          <ModalHotkeys onClose={() => setOpen(false)} />
           <div className="help-card" onClick={(e) => e.stopPropagation()}>
             <div className="help-head">
               <span className="help-emoji">{h.emoji || "💡"}</span>
@@ -1686,6 +1717,12 @@ function DetailPanel({ leafId, onClose, openTerm, onNav }) {
   const srcs = [...new Set((node.src || []).map((s) => SRC_LABEL[s]).filter(Boolean))];
   const terms = (node.terms || []).filter((k) => GLOSSARY[k]);
   const prev = LEAVES[pos - 1], next = LEAVES[pos + 1];
+
+  // Esc로 닫기 + ←/→ 키로 이전·다음 개념 이동 + 배경 스크롤 잠금
+  useOverlay(onClose, (e) => {
+    if (e.key === "ArrowLeft") onNav(-1);
+    else if (e.key === "ArrowRight") onNav(1);
+  });
 
   // 폭 조절(리사이즈) — 드래그하거나 프리셋으로 넓히면 본문이 폭에 맞게 여러 열로 재배치
   const vw = typeof window !== "undefined" ? window.innerWidth : 1280;
@@ -2796,6 +2833,9 @@ export default function App() {
   const openTerm = (k) => setActiveTerm(k);
   const markNode = (key) => setReadNodes((prev) => { if (prev.has(key)) return prev; const n = new Set(prev); n.add(key); return n; });
 
+  // 탭을 바꾸면 항상 페이지 맨 위에서 시작 — 긴 페이지 중간에서 열리는 혼란 방지
+  useEffect(() => { window.scrollTo({ top: 0 }); }, [tab]);
+
   useEffect(() => {
     (async () => {
       const saved = await sGet("me", false);
@@ -2883,11 +2923,11 @@ export default function App() {
           </div>
           <ShareStatus />
           <div className="px-2.5 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 text-[11px] font-bold truncate max-w-[120px]">{me.nick}</div>
-          <button onClick={() => setTab("admin")} title="운영자 페이지"
+          <button onClick={() => setTab("admin")} title="운영자 페이지" aria-label="운영자 페이지"
             className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${tab === "admin" ? "bg-indigo-950 text-amber-400" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
             <Lock size={15} />
           </button>
-          <button onClick={logout} title="로그아웃 (입장 화면으로 돌아가기)"
+          <button onClick={logout} title="로그아웃 (입장 화면으로 돌아가기)" aria-label="로그아웃"
             className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-slate-100 text-slate-500 hover:bg-rose-100 hover:text-rose-600 transition-colors">
             <LogOut size={15} />
           </button>
@@ -2916,7 +2956,7 @@ export default function App() {
       <footer className="max-w-5xl mx-auto px-4 pb-10 pt-2 text-center">
         <div className="border-t border-slate-200 pt-5 text-[11px] text-slate-400 space-y-1.5">
           <p>학습 지도 · 용어 사전 · 실습 키트 · 미션 체험 · 공유 마당 · 이해도 체크 · 운영자</p>
-          <p className="text-slate-300">© {new Date().getFullYear()} 바이브 코딩 연수 동반자 · 미술교사 황미란 · 교육 목적 비영리 자료 · All rights reserved.</p>
+          <p className="text-slate-400">© {new Date().getFullYear()} 바이브 코딩 연수 동반자 · 미술교사 황미란 · 교육 목적 비영리 자료 · All rights reserved.</p>
         </div>
       </footer>
 
@@ -2964,9 +3004,9 @@ function EntryScreen({ onJoin }) {
           <p className="text-indigo-200 text-[13px] mt-3 leading-relaxed">웹의 구조를 이해하고, 개인정보 걱정 없이 데이터를 다루며, 실제로 작동하는 도구를 직접 배포합니다.</p>
         </div>
         <div className="rounded-b-3xl bg-white border border-t-0 border-slate-200 p-7 space-y-4">
-          <Field label="학교명" value={school} onChange={setSchool} placeholder="예) 동양중학교" onEnter={go} />
-          <Field label="별명" value={nick} onChange={setNick} placeholder="예) 디자인쌤" onEnter={go} />
-          <Field label="세션 코드 (선택)" value={session} onChange={setSession} placeholder="비우면 DEMO" hint="오늘 연수는 20260818 세션으로 모입니다 — 그대로 두고 입장하세요" onEnter={go} />
+          <Field label="학교명" value={school} onChange={setSchool} placeholder="예) 동양중학교" maxLength={20} onEnter={go} />
+          <Field label="별명" value={nick} onChange={setNick} placeholder="예) 디자인쌤" maxLength={12} autoFocus onEnter={go} />
+          <Field label="세션 코드 (선택)" value={session} onChange={setSession} placeholder="비우면 DEMO" maxLength={12} hint="오늘 연수는 20260818 세션으로 모입니다 — 그대로 두고 입장하세요" onEnter={go} />
           <div>
             <label className="block text-[13px] font-bold text-slate-600 mb-1.5">내 비밀번호 (숫자 4자리)</label>
             <input value={pin} onChange={(e) => { setPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setErr(""); }}
@@ -2988,11 +3028,12 @@ function EntryScreen({ onJoin }) {
     </div>
   );
 }
-function Field({ label, value, onChange, placeholder, hint, onEnter }) {
+function Field({ label, value, onChange, placeholder, hint, onEnter, maxLength, autoFocus }) {
   return (
     <div>
       <label className="block text-[13px] font-bold text-slate-600 mb-1.5">{label}</label>
       <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        maxLength={maxLength} autoFocus={autoFocus}
         onKeyDown={(e) => { if (e.key === "Enter" && onEnter) onEnter(); }}
         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none text-[15px]" />
       {hint && <p className="text-[11px] text-slate-400 mt-1">{hint}</p>}
@@ -3035,7 +3076,7 @@ function HomeView({ me, roster, onRefresh, setTab, openTerm }) {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {[
           { Icon: MapIcon, t: "학습 지도", d: "뉴스 워밍업 + 위계 6영역", to: "learn", c: "bg-indigo-50 text-indigo-700" },
-          { Icon: BookOpen, t: "용어 사전", d: "69개 용어 팝업", to: "glossary", c: "bg-sky-50 text-sky-700" },
+          { Icon: BookOpen, t: "용어 사전", d: `${Object.keys(GLOSSARY).length}개 용어 팝업`, to: "glossary", c: "bg-sky-50 text-sky-700" },
           { Icon: Wrench, t: "실습 키트", d: "3개 트랙 가이드", to: "kit", c: "bg-emerald-50 text-emerald-700" },
           { Icon: Inbox, t: "미션 체험", d: "익명 우체통 체험", to: "mailbox", c: "bg-rose-50 text-rose-700" },
           { Icon: Share2, t: "공유 마당", d: "만든 사이트 공유", to: "share", c: "bg-teal-50 text-teal-700" },
@@ -3063,7 +3104,7 @@ function HomeView({ me, roster, onRefresh, setTab, openTerm }) {
             {others.length === 0 && <span className="text-[13px] text-slate-400 self-center">아직 다른 참여자가 없어요. 곧 합류할 거예요!</span>}
           </div>
         )}
-        <p className="text-[11px] text-slate-300 mt-3">같은 세션 코드로 입장한 사람만 여기 모입니다 (현재: {me.session})</p>
+        <p className="text-[11px] text-slate-400 mt-3">같은 세션 코드로 입장한 사람만 여기 모입니다 (현재: {me.session})</p>
       </div>
 
       {qzRows.length > 0 && (
@@ -3078,7 +3119,7 @@ function HomeView({ me, roster, onRefresh, setTab, openTerm }) {
               </div>
             ))}
           </div>
-          <p className="text-[11px] text-slate-300 mt-2.5">강의 중 날아오는 깜짝 퀴즈에 참여하면 점수가 쌓여요 — 빠르고 정확할수록 높은 점수! ⚡</p>
+          <p className="text-[11px] text-slate-400 mt-2.5">강의 중 날아오는 깜짝 퀴즈에 참여하면 점수가 쌓여요 — 빠르고 정확할수록 높은 점수! ⚡</p>
         </div>
       )}
 
@@ -3103,9 +3144,16 @@ function GlossaryView({ q, setQ, openTerm }) {
       <div className="relative">
         <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="용어 검색 (예: 익명, Firestore, 보안)"
-          className="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none text-[15px]" />
+          className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none text-[15px]" />
+        {q && (
+          <button onClick={() => setQ("")} aria-label="검색어 지우기" title="검색어 지우기"
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400">
+            <X size={13} />
+          </button>
+        )}
       </div>
-      {cats.length === 0 && <p className="text-center text-slate-400 py-10 text-[14px]">검색 결과가 없어요.</p>}
+      {q.trim() && cats.length > 0 && <p className="text-[12px] text-slate-400 px-1 -mt-2">‘{q.trim()}’ 검색 결과 {filtered.length}개</p>}
+      {cats.length === 0 && <p className="text-center text-slate-400 py-10 text-[14px]">‘{q.trim()}’에 대한 검색 결과가 없어요. 다른 말로 찾아보세요.</p>}
       {cats.map((c) => (
         <div key={c}>
           <h3 className="text-[12px] font-bold text-slate-400 tracking-wide mb-2 px-1">{c}</h3>
@@ -3125,6 +3173,7 @@ function GlossaryView({ q, setQ, openTerm }) {
 
 /* ---------- 용어 팝업 ---------- */
 function TermModal({ k, onClose, openTerm }) {
+  useOverlay(onClose); // Esc로 닫기 + 배경 스크롤 잠금
   const v = GLOSSARY[k];
   if (!v) return null;
   return (
@@ -3228,17 +3277,32 @@ function QuizView({ openTerm }) {
   const choose = (qi, oi) => setPicked((p) => (p[qi] != null ? p : { ...p, [qi]: oi }));
   const answered = Object.keys(picked).length;
   const correct = Object.entries(picked).filter(([qi, oi]) => QUIZ[qi].a === oi).length;
+  const allDone = answered === QUIZ.length;
+  const cheer = correct === QUIZ.length ? "🎉 만점! 오늘 배운 내용을 완벽하게 이해하셨어요."
+    : correct >= Math.ceil(QUIZ.length * 0.7) ? "👏 훌륭해요! 핵심은 거의 다 잡으셨어요. 틀린 문제의 해설만 한 번 더 보세요."
+    : "💪 좋은 시작이에요! 해설을 읽고 ‘다시 풀기’로 한 번 더 도전해 보세요.";
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl bg-white border border-slate-200 p-5 flex items-center justify-between">
-        <div>
-          <h2 className="font-extrabold text-indigo-950 text-[16px]">이해도 체크</h2>
-          <p className="text-[13px] text-slate-400">정답을 고르면 바로 해설이 나와요.</p>
+      <div className="rounded-2xl bg-white border border-slate-200 p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-extrabold text-indigo-950 text-[16px]">이해도 체크</h2>
+            <p className="text-[13px] text-slate-400">정답을 고르면 바로 해설이 나와요.</p>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-extrabold text-amber-500">{correct}<span className="text-slate-300 text-lg">/{QUIZ.length}</span></div>
+            <div className="text-[11px] text-slate-400">{answered}문 풀이</div>
+          </div>
         </div>
-        <div className="text-right">
-          <div className="text-2xl font-extrabold text-amber-500">{correct}<span className="text-slate-300 text-lg">/{QUIZ.length}</span></div>
-          <div className="text-[11px] text-slate-400">{answered}문 풀이</div>
-        </div>
+        {allDone && (
+          <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-[13.5px] font-bold text-slate-700 leading-relaxed">{cheer}</p>
+            <button onClick={() => setPicked({})}
+              className="shrink-0 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[13px] flex items-center gap-1.5">
+              <RefreshCw size={14} /> 다시 풀기
+            </button>
+          </div>
+        )}
       </div>
       {QUIZ.map((q, qi) => {
         const sel = picked[qi];
@@ -3663,7 +3727,7 @@ function ScreenGuides() {
           </a>
         ))}
       </div>
-      <p className="text-[11px] text-slate-300 mt-3 leading-relaxed">※ 배포 시 두 가이드 HTML 파일을 사이트 최상위 폴더(public)에 함께 올리면 이 링크가 동작합니다.</p>
+      <p className="text-[11px] text-slate-400 mt-3 leading-relaxed">※ 배포 시 두 가이드 HTML 파일을 사이트 최상위 폴더(public)에 함께 올리면 이 링크가 동작합니다.</p>
     </div>
   );
 }
@@ -3678,7 +3742,7 @@ function NewsCards() {
       <div className="rounded-2xl bg-white border border-slate-200 p-5">
         <h3 className="font-extrabold text-indigo-950 text-[15px] mb-3 flex items-center gap-2"><TrendingUp size={16} className="text-amber-500" /> 숫자로 보는 바이브 코딩 2026</h3>
         <div className="grid grid-cols-3 gap-2">{NEWS_STATS.map((s, i) => (<div key={i} className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center"><div className="text-xl sm:text-2xl font-extrabold text-amber-500">{s.n}</div><div className="text-[10px] text-slate-500 mt-1 leading-tight">{s.l}</div></div>))}</div>
-        <p className="text-[10px] text-slate-300 mt-2">출처: daily.dev · Keyhole Software (2026)</p>
+        <p className="text-[10px] text-slate-400 mt-2">출처: daily.dev · Keyhole Software (2026)</p>
       </div>
       <div className="grid sm:grid-cols-2 gap-3">
         {NEWS.map((n, i) => { const c = TAGC[n.color]; return (
@@ -3701,7 +3765,7 @@ function NewsCards() {
           </a>
         ); })}
       </div>
-      <p className="text-[11px] text-slate-300 text-center leading-relaxed">기사 캡처 대신 원문 링크로 연결했어요. 직접 캡처한 이미지가 있으면 코드의 각 뉴스 <span className="font-mono">img</span> 칸에 링크를 넣으면 커버로 표시됩니다.</p>
+      <p className="text-[11px] text-slate-400 text-center leading-relaxed">기사 캡처 대신 원문 링크로 연결했어요. 직접 캡처한 이미지가 있으면 코드의 각 뉴스 <span className="font-mono">img</span> 칸에 링크를 넣으면 커버로 표시됩니다.</p>
     </div>
   );
 }
@@ -3738,6 +3802,7 @@ function ShareView({ me, adminOk }) {
     setItems(next); setTitle(""); setUrl(""); setNote(""); setBusy(false);
   };
   const remove = async (id) => {
+    if (!window.confirm("이 공유 글을 삭제할까요?")) return;
     const cur = (await sGet(`gallery_${s}`, true)) || [];
     const next = (Array.isArray(cur) ? cur : []).filter((x) => x.id !== id);
     await sSet(`gallery_${s}`, next, true); setItems(next);
@@ -3819,7 +3884,7 @@ function ShareView({ me, adminOk }) {
               ))}
             </div>
           )}
-          <p className="text-[11px] text-slate-300 text-center leading-relaxed">
+          <p className="text-[11px] text-slate-400 text-center leading-relaxed">
             여러 기기(다른 연수생)와 실시간으로 공유하려면 이 앱의 저장소를 Firebase Firestore에 연결하세요 — 오늘 배운 그 기술입니다.
           </p>
         </>
@@ -3851,6 +3916,7 @@ function ItemComments({ s, itemId, me, adminOk }) {
     setDraft(""); setBusy(false);
   };
   const removeCmt = async (id) => {
+    if (!window.confirm("이 댓글을 삭제할까요?")) return;
     const cur = (await sGet(key, true)) || [];
     await sSet(key, (Array.isArray(cur) ? cur : []).filter((c) => c.id !== id), true);
   };
@@ -3972,6 +4038,7 @@ function LiveQuizOverlay({ me }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center p-3 sm:p-4" style={{ zIndex: 90 }}>
+      <ModalHotkeys onClose={() => (revealed ? setHidden(live.id) : setMinz(true))} />
       <div className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="bg-gradient-to-r from-violet-600 to-fuchsia-600 p-5 text-white relative">
           <button onClick={() => (revealed ? setHidden(live.id) : setMinz(true))} title={revealed ? "닫기" : "잠시 접어두기"}
@@ -4253,7 +4320,10 @@ function LiveQuizPanel({ s, roster, flash }) {
   }, [now, live]); // eslint-disable-line
 
   const takeDown = async () => { await sSet(`qz_live_${s}`, null, true); setLive(null); setAnswers([]); flash("퀴즈를 내렸어요."); };
-  const resetScores = async () => { await sSet(`qz_scores_${s}`, {}, true); setScores({}); flash("점수판을 초기화했어요."); };
+  const resetScores = async () => {
+    if (!window.confirm("누적 점수판을 모두 초기화할까요?\n(되돌릴 수 없어요)")) return;
+    await sSet(`qz_scores_${s}`, {}, true); setScores({}); flash("점수판을 초기화했어요.");
+  };
 
   const rows = Object.entries(scores).map(([uid, v]: [string, any]) => ({ uid, ...(v || {}) })).sort((a, b) => (b.pts || 0) - (a.pts || 0));
   const bank = cat === "all" ? LIVEQ_BANK : LIVEQ_BANK.filter((b) => b.cat === cat);
@@ -4626,7 +4696,7 @@ function FollowCast({ me, setTab, setActiveTerm }) {
     );
 
   return (
-    <div style={{ zIndex: 75 }} className="fixed bottom-4 left-1/2 -translate-x-1/2 max-w-[94vw] flex items-center gap-2 pl-4 pr-2 py-2 rounded-full bg-indigo-950 text-white shadow-2xl text-[12px] font-bold whitespace-nowrap">
+    <div style={{ zIndex: 75 }} className="fixed bottom-[88px] sm:bottom-4 left-1/2 -translate-x-1/2 max-w-[94vw] flex items-center gap-2 pl-4 pr-2 py-2 rounded-full bg-indigo-950 text-white shadow-2xl text-[12px] font-bold whitespace-nowrap">
       <span className="animate-pulse shrink-0">📡</span>
       <span className="truncate">{follow ? `${cast.nick || "강사"} 선생님 화면과 함께 보는 중` : "따라가기 일시정지됨"}</span>
       <button onClick={() => setFollow(!follow)} title={follow ? "잠시 내 마음대로 둘러보기" : "다시 강사 화면을 따라가기"}
@@ -4678,13 +4748,14 @@ function PresentOverlay({ me, adminOk }) {
   if (min)
     return (
       <button onClick={() => setMin(false)} style={{ zIndex: 70 }}
-        className="fixed bottom-[64px] left-1/2 -translate-x-1/2 max-w-[94vw] px-4 py-2.5 rounded-full bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold text-[12.5px] shadow-2xl flex items-center gap-2 whitespace-nowrap">
+        className="fixed bottom-[136px] sm:bottom-[64px] left-1/2 -translate-x-1/2 max-w-[94vw] px-4 py-2.5 rounded-full bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold text-[12.5px] shadow-2xl flex items-center gap-2 whitespace-nowrap">
         <span className="shrink-0">📺</span><span className="truncate">{pr.nick} 선생님 발표 진행 중 — 다시 열기</span>
       </button>
     );
 
   return (
     <div style={{ zIndex: 70 }} className="fixed inset-0 bg-black/70 flex flex-col p-2 sm:p-4">
+      <ModalHotkeys onClose={() => setMin(true)} />
       <div className="bg-white rounded-2xl flex-1 flex flex-col overflow-hidden w-full max-w-6xl mx-auto shadow-2xl">
         <div className="bg-gradient-to-r from-teal-600 to-emerald-600 px-4 py-2.5 text-white flex items-center gap-2">
           <span className="text-[16px]">📺</span>
@@ -4763,10 +4834,22 @@ function AdminView({ me, setTab, onAuthed, preAuthed }) {
       if (p === MASTER_PW) flash("환영합니다, 황미란 선생님! 🎨");
     } else setErr("비밀번호가 일치하지 않아요.");
   };
-  const clearMail = async () => { await sSet(`mailbox_${s}`, [], true); setMail([]); flash("수합된 의견을 비웠어요."); };
-  const clearRoster = async () => { await sSet(`roster_${s}`, [], true); setRoster([]); flash("참여자 명단을 비웠어요."); };
-  const clearGallery = async () => { await sSet(`gallery_${s}`, [], true); setGallery([]); flash("공유 마당을 비웠어요."); };
-  const resetPw = async () => { await sSet(`adminpw_${s}`, "", true); setStored(null); setAuthed(false); flash("비밀번호를 초기화했어요."); };
+  const clearMail = async () => {
+    if (!window.confirm(`수합된 의견 ${mail.length}개를 모두 지울까요?\n(되돌릴 수 없어요)`)) return;
+    await sSet(`mailbox_${s}`, [], true); setMail([]); flash("수합된 의견을 비웠어요.");
+  };
+  const clearRoster = async () => {
+    if (!window.confirm(`참여자 명단 ${roster.length}명을 모두 지울까요?\n(되돌릴 수 없어요)`)) return;
+    await sSet(`roster_${s}`, [], true); setRoster([]); flash("참여자 명단을 비웠어요.");
+  };
+  const clearGallery = async () => {
+    if (!window.confirm(`공유 마당의 글 ${gallery.length}개를 모두 지울까요?\n(되돌릴 수 없어요)`)) return;
+    await sSet(`gallery_${s}`, [], true); setGallery([]); flash("공유 마당을 비웠어요.");
+  };
+  const resetPw = async () => {
+    if (!window.confirm("운영자 비밀번호를 초기화할까요?\n(다음 입장 때 새로 설정하게 됩니다)")) return;
+    await sSet(`adminpw_${s}`, "", true); setStored(null); setAuthed(false); flash("비밀번호를 초기화했어요.");
+  };
   const saveSettings = async () => {
     await sSet(`settings_${s}`, { school: stSchool.trim(), section: stSection.trim(), notice: stNotice.trim(), shareOn: stShareOn }, true);
     flash("세션 설정을 저장했어요.");
