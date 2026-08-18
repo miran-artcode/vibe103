@@ -2780,6 +2780,8 @@ export default function App() {
 
       {activeTerm && <TermModal k={activeTerm} onClose={() => setActiveTerm(null)} openTerm={openTerm} />}
       <LiveQuizOverlay me={me} />
+      {/* 화면 오른쪽 위 실시간 누적 점수판 (TOP 5) */}
+      <ScoreBoard me={me} />
       {/* 강사 전용 플로팅 퀴즈 리모컨 — 관리자 탭에서는 발사 패널이 있으니 숨김 */}
       {adminOk && tab !== "admin" && <QuickQuizFab me={me} />}
       {/* 화면 방송: 강사는 📡 토글, 참여자는 따라가기 바 */}
@@ -3698,6 +3700,7 @@ function LiveQuizOverlay({ me }) {
   const [minz, setMinz] = useState(false);
   const [etcOpen, setEtcOpen] = useState(false);   // '기타(직접 입력)' 보기를 골랐을 때 입력창 표시
   const [etcText, setEtcText] = useState("");
+  const [liveAns, setLiveAns] = useState([]);      // liveShow 퀴즈: 진행 중 실시간 응답 목록
 
   useEffect(() => {
     let on = true;
@@ -3732,6 +3735,16 @@ function LiveQuizOverlay({ me }) {
       } catch {}
     })();
   }, [live, result, s, me.uid]);
+
+  // liveShow 퀴즈: 진행 중에도 응답 내용을 실시간으로 모두에게 공개 (이름은 익명)
+  useEffect(() => {
+    if (!live || live.phase !== "live" || !live.liveShow) { setLiveAns([]); return; }
+    let on = true;
+    const tick = async () => { try { const a = (await sGet(`qz_ans_${s}_${live.id}`, true)) || []; if (on) setLiveAns(Array.isArray(a) ? a : []); } catch {} };
+    tick();
+    const id = setInterval(tick, 2500);
+    return () => { on = false; clearInterval(id); };
+  }, [live && live.id, live && live.phase, s]); // eslint-disable-line
 
   if (!STORAGE_OK || !live || hidden === live.id) return null;
 
@@ -3831,6 +3844,33 @@ function LiveQuizOverlay({ me }) {
             </div>
           )}
 
+          {/* liveShow 퀴즈: 진행 중 실시간 응답 공개 (익명) */}
+          {isLive && live.liveShow && liveAns.length > 0 && (
+            <div className="rounded-xl border border-violet-200 overflow-hidden">
+              <div className="bg-violet-50 px-3 py-2 text-[12px] font-bold text-violet-600">📡 실시간 응답 {liveAns.length}명 (익명)</div>
+              <div className="p-3 space-y-1">
+                {live.o.map((o, oi) => {
+                  const c = liveAns.filter((a) => a.choice === oi).length;
+                  const p = Math.round((c / liveAns.length) * 100);
+                  return (
+                    <div key={oi} className="flex items-center gap-2 text-[11.5px]">
+                      <span className="w-4 font-bold text-slate-400">{String.fromCharCode(65 + oi)}</span>
+                      <div className="flex-1 h-3.5 bg-slate-50 rounded-full overflow-hidden border border-violet-100">
+                        <div className="h-full bg-violet-400 transition-all" style={{ width: p + "%" }} />
+                      </div>
+                      <span className="w-16 text-right font-bold text-violet-600">{c}명 · {p}%</span>
+                    </div>
+                  );
+                })}
+                {liveAns.filter((a) => a.text && a.text.trim()).map((a, i) => (
+                  <div key={i} className="text-[12.5px] text-slate-700 bg-violet-50/60 rounded-lg px-2.5 py-1.5">
+                    ✏️ {a.text}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {revealed && result && (
             <div className="space-y-3 pt-1">
               <div className={`rounded-xl p-3.5 text-center font-extrabold text-[15px] ${live.survey ? (result.pick == null ? "bg-slate-50 text-slate-500" : "bg-violet-50 text-violet-700") : result.pick === live.a ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-600"}`}>
@@ -3844,7 +3884,7 @@ function LiveQuizOverlay({ me }) {
                   <div className="bg-violet-50 px-3 py-2 text-[12px] font-bold text-violet-600">✏️ 직접 적어 주신 의견</div>
                   {result.etcAnswers.map((a, i) => (
                     <div key={i} className="px-3 py-2 text-[13px] border-t border-violet-100 text-slate-700">
-                      <b className="text-violet-700">{a.nick}</b> · {a.text}
+                      {live.anon ? <>✏️ {a.text}</> : <><b className="text-violet-700">{a.nick}</b> · {a.text}</>}
                     </div>
                   ))}
                 </div>
@@ -3898,12 +3938,14 @@ async function qzFinish(s) {
   const ans = (await sGet(`qz_ans_${s}_${cur.id}`, true)) || [];
   const arr = Array.isArray(ans) ? ans : [];
   const sc = (await sGet(`qz_scores_${s}`, true)) || {};
+  // 설문형: 빨리 제출한 순서대로 점수 (1등 100점부터 10점씩, 최소 30점)
+  const speedRank = {};
+  arr.slice().sort((a, b) => a.ts - b.ts).forEach((an, i) => { speedRank[an.uid] = i; });
   arr.forEach((an) => {
     const row = sc[an.uid] || { nick: an.nick, school: an.school, pts: 0, correct: 0, played: 0 };
     row.nick = an.nick; row.played = (row.played || 0) + 1;
     if (cur.survey) {
-      // 설문형: 정답이 없으니 참여 점수만 지급
-      an.gain = 50;
+      an.gain = Math.max(30, 100 - speedRank[an.uid] * 10);
       row.pts = (row.pts || 0) + an.gain;
     } else if (an.choice === cur.a) {
       const elapsed = Math.max(0, (an.ts - cur.startTs) / 1000);
@@ -3921,6 +3963,66 @@ async function qzFinish(s) {
 }
 
 /* ============================================================
+   SCOREBOARD — 화면 오른쪽 위 실시간 누적 점수판 (모두에게 표시, TOP 5)
+   ============================================================ */
+function ScoreBoard({ me }) {
+  const s = me.session;
+  const [rows, setRows] = useState([]);
+  const [open, setOpen] = useState(true);
+
+  useEffect(() => {
+    let on = true;
+    const tick = async () => {
+      try {
+        const sc = (await sGet(`qz_scores_${s}`, true)) || {};
+        if (!on) return;
+        const r = Object.entries(sc).map(([uid, v]: [string, any]) => ({ uid, ...(v || {}) })).sort((a, b) => (b.pts || 0) - (a.pts || 0));
+        setRows(r);
+      } catch {}
+    };
+    tick();
+    const id = setInterval(tick, 5000);
+    return () => { on = false; clearInterval(id); };
+  }, [s]);
+
+  if (!STORAGE_OK || rows.length === 0) return null;
+
+  const myIdx = rows.findIndex((r) => r.uid === me.uid);
+
+  if (!open)
+    return (
+      <button onClick={() => setOpen(true)} title="점수판 열기" style={{ zIndex: 40 }}
+        className="fixed top-28 right-3 w-11 h-11 rounded-full bg-white border border-amber-300 shadow-lg flex items-center justify-center hover:scale-105 transition-transform">
+        <Trophy size={18} className="text-amber-500" />
+      </button>
+    );
+
+  return (
+    <div style={{ zIndex: 40 }} className="fixed top-28 right-3 w-[190px] rounded-2xl bg-white/95 backdrop-blur border border-amber-200 shadow-xl overflow-hidden">
+      <div className="px-3 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-white flex items-center gap-1.5">
+        <Trophy size={13} />
+        <span className="text-[11.5px] font-extrabold flex-1">실시간 점수판</span>
+        <button onClick={() => setOpen(false)} title="접기" className="w-5 h-5 rounded bg-white/20 hover:bg-white/40 flex items-center justify-center"><X size={11} /></button>
+      </div>
+      {rows.slice(0, 5).map((r, i) => (
+        <div key={r.uid} className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] border-t border-amber-50 ${r.uid === me.uid ? "bg-amber-50 font-bold" : ""}`}>
+          <span className="w-5 text-center text-[13px]">{["🥇", "🥈", "🥉"][i] || <span className="font-mono text-[10px] text-slate-400">{i + 1}</span>}</span>
+          <span className="flex-1 truncate text-slate-700">{r.nick}{r.uid === me.uid ? " (나)" : ""}</span>
+          <span className="font-mono font-bold text-amber-600 shrink-0">{r.pts || 0}</span>
+        </div>
+      ))}
+      {myIdx >= 5 && (
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] border-t border-amber-100 bg-amber-50 font-bold">
+          <span className="w-5 text-center font-mono text-[10px] text-slate-400">{myIdx + 1}</span>
+          <span className="flex-1 truncate text-slate-700">{me.nick} (나)</span>
+          <span className="font-mono font-bold text-amber-600 shrink-0">{rows[myIdx].pts || 0}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
    LIVE QUIZ — 강사(운영자)용 발사 패널
    ============================================================ */
 function LiveQuizPanel({ s, roster, flash }) {
@@ -3928,7 +4030,7 @@ function LiveQuizPanel({ s, roster, flash }) {
   const [answers, setAnswers] = useState([]);
   const [scores, setScores] = useState({});
   const [cat, setCat] = useState("all");
-  const [dur, setDur] = useState(20);
+  const [dur, setDur] = useState(7);
   const [now, setNow] = useState(Date.now());
   const [showCustom, setShowCustom] = useState(false);
   const [cq, setCq] = useState({ q: "", o: ["", "", "", ""], a: 0, explain: "" });
@@ -4051,7 +4153,7 @@ function LiveQuizPanel({ s, roster, flash }) {
             ))}
             <div className="ml-auto flex items-center gap-1.5">
               <span className="text-[11px] font-bold text-slate-400">제한시간</span>
-              {[15, 20, 30, 45].map((d) => (
+              {[5, 7, 10, 15, 20].map((d) => (
                 <button key={d} onClick={() => setDur(d)} className={`px-2 py-1 rounded-lg text-[11px] font-bold ${dur === d ? "bg-amber-500 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>{d}초</button>
               ))}
             </div>
@@ -4127,7 +4229,7 @@ function QuickQuizFab({ me }) {
   const [live, setLive] = useState(null);
   const [answers, setAnswers] = useState([]);
   const [cat, setCat] = useState("icebreak");
-  const [dur, setDur] = useState(20);
+  const [dur, setDur] = useState(7);
   const [now, setNow] = useState(Date.now());
   const [fired, setFired] = useState(() => new Set());
   const [toast, setToast] = useState("");
@@ -4228,7 +4330,7 @@ function QuickQuizFab({ me }) {
         ))}
         <select value={dur} onChange={(e) => setDur(Number(e.target.value))} title="제한시간"
           className="ml-auto text-[11px] font-bold text-slate-500 bg-slate-100 rounded-lg px-1.5 py-1 outline-none">
-          {[15, 20, 30, 45].map((d) => <option key={d} value={d}>{d}초</option>)}
+          {[5, 7, 10, 15, 20].map((d) => <option key={d} value={d}>{d}초</option>)}
         </select>
       </div>
 
