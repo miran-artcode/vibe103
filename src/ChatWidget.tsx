@@ -50,6 +50,23 @@ function timeLabel(ts: number) {
   return `${h < 12 ? "오전" : "오후"} ${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")}`;
 }
 
+// 별명마다 고정된 색 — 누가 보낸 메시지인지 한눈에 구분돼요
+function colorFor(nick: string) {
+  let h = 0;
+  for (let i = 0; i < nick.length; i++) h = (h * 31 + nick.charCodeAt(i)) % 360;
+  return `hsl(${h}, 62%, 42%)`;
+}
+
+// 이름 첫 글자 동그라미 아바타
+function Avatar({ nick, size = 28 }: { nick: string; size?: number }) {
+  return (
+    <span style={{ width: size, height: size, background: colorFor(nick), fontSize: size * 0.42 }}
+      className="rounded-full text-white font-extrabold flex items-center justify-center shrink-0 select-none shadow-sm">
+      {(nick || "?").slice(0, 1)}
+    </span>
+  );
+}
+
 export default function ChatWidget() {
   const [me, setMe] = useState<Me | null>(() => readMe());
   const [authed, setAuthed] = useState(false);
@@ -63,6 +80,10 @@ export default function ChatWidget() {
   const listRef = useRef<HTMLDivElement>(null);
   const openRef = useRef(open);
   openRef.current = open;
+  // 채팅창이 닫혀 있을 때 새 메시지가 오면 보낸 선생님을 미리보기로 띄움
+  const [preview, setPreview] = useState<Msg | null>(null);
+  const prevLastRef = useRef<string | null>(null);
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const app = getApps().length ? getApp() : null;
   const db = useMemo(() => (app ? getFirestore(app) : null), [app]);
@@ -103,6 +124,19 @@ export default function ChatWidget() {
     if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
     if (openRef.current && msgs.length) markSeen(msgs[msgs.length - 1].ts);
   }, [msgs, open]);
+
+  // 닫힌 상태에서 다른 선생님의 새 메시지가 도착하면 5초간 미리보기 표시
+  useEffect(() => {
+    const last = msgs[msgs.length - 1];
+    if (!last) return;
+    const prevId = prevLastRef.current;
+    prevLastRef.current = last.id;
+    if (prevId === null || prevId === last.id) return; // 첫 로드·변화 없음은 알림 생략
+    if (last.uid === me?.uid || openRef.current) return;
+    setPreview(last);
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = setTimeout(() => setPreview(null), 5000);
+  }, [msgs]); // eslint-disable-line
 
   const markSeen = (ts: number) => {
     setLastSeen(ts);
@@ -194,18 +228,29 @@ export default function ChatWidget() {
             )}
             {msgs.map((m) => {
               const mine = m.uid === me.uid;
-              return (
-                <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-                  {!mine && (
-                    <div className="text-[10.5px] text-slate-400 mb-0.5 px-1">
-                      <b className="text-slate-600">{m.nick}</b>{m.school ? ` · ${m.school}` : ""}
+              if (mine)
+                return (
+                  <div key={m.id} className="flex flex-col items-end">
+                    <div className="text-[10px] text-indigo-400 font-bold mb-0.5 px-1">나 · {m.nick}</div>
+                    <div className="max-w-[85%] px-3 py-2 rounded-2xl text-[12.5px] leading-relaxed whitespace-pre-wrap break-words shadow-sm bg-indigo-600 text-white rounded-br-md">
+                      {renderText(m.text, true)}
                     </div>
-                  )}
-                  <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-[12.5px] leading-relaxed whitespace-pre-wrap break-words shadow-sm ${
-                    mine ? "bg-indigo-600 text-white rounded-br-md" : "bg-white text-slate-700 border border-slate-200 rounded-bl-md"}`}>
-                    {renderText(m.text, mine)}
+                    <div className="text-[9.5px] text-slate-300 mt-0.5 px-1">{timeLabel(m.ts)}</div>
                   </div>
-                  <div className="text-[9.5px] text-slate-300 mt-0.5 px-1">{timeLabel(m.ts)}</div>
+                );
+              return (
+                <div key={m.id} className="flex items-start gap-2">
+                  <Avatar nick={m.nick} />
+                  <div className="flex flex-col items-start min-w-0">
+                    <div className="text-[11.5px] mb-0.5 px-0.5 leading-tight">
+                      <b style={{ color: colorFor(m.nick) }}>{m.nick} 선생님</b>
+                      {m.school ? <span className="text-slate-400 text-[10px]"> · {m.school}</span> : null}
+                    </div>
+                    <div className="max-w-full px-3 py-2 rounded-2xl text-[12.5px] leading-relaxed whitespace-pre-wrap break-words shadow-sm bg-white text-slate-700 border border-slate-200 rounded-tl-md">
+                      {renderText(m.text, false)}
+                    </div>
+                    <div className="text-[9.5px] text-slate-300 mt-0.5 px-1">{timeLabel(m.ts)}</div>
+                  </div>
                 </div>
               );
             })}
@@ -233,11 +278,30 @@ export default function ChatWidget() {
         </div>
       )}
 
+      {/* 새 메시지 미리보기 — 누가 보냈는지 바로 보여요 (누르면 채팅 열림) */}
+      {!open && preview && (
+        <button
+          onClick={() => { setOpen(true); setPreview(null); if (msgs.length) markSeen(msgs[msgs.length - 1].ts); }}
+          className="mb-2 max-w-[280px] flex items-start gap-2 bg-white border border-slate-200 shadow-2xl rounded-2xl px-3 py-2.5 text-left hover:border-indigo-300 transition-colors">
+          <Avatar nick={preview.nick} size={26} />
+          <span className="min-w-0">
+            <span className="block text-[11px] font-extrabold truncate" style={{ color: colorFor(preview.nick) }}>
+              💬 {preview.nick} 선생님{preview.school ? ` · ${preview.school}` : ""}
+            </span>
+            <span className="block text-[12px] text-slate-600 leading-snug break-words"
+              style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+              {preview.text}
+            </span>
+          </span>
+        </button>
+      )}
+
       {/* 플로팅 버튼 */}
       <button
         onClick={() => {
           const next = !open;
           setOpen(next);
+          setPreview(null);
           if (next && msgs.length) markSeen(msgs[msgs.length - 1].ts);
         }}
         className="relative w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl flex items-center justify-center text-2xl transition-transform hover:scale-105 active:scale-95"

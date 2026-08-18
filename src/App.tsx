@@ -55,6 +55,32 @@ async function sMerge(key, patch) {
 }
 
 /* ============================================================
+   CAST DETAIL BUS — 화면 방송에 '탭 안쪽' 세부 화면까지 실어 보내는 통로
+   - 강사 쪽: 학습지도·실습 키트 등 각 컴포넌트가 report()로 자기 세부
+     상태(열린 말단, 현재 단계 등)를 알리면 CastControl이 방송 신호에 포함.
+   - 참여자 쪽: FollowCast가 받은 세부 상태를 apply()로 뿌리고, 각 컴포넌트가
+     sub()로 받아 같은 화면으로 이동. 탭 이동 직후 새로 마운트되는 컴포넌트도
+     구독 시점에 마지막 상태를 즉시 받아 따라잡습니다.
+   ============================================================ */
+const castDetail = {
+  cur: {},
+  subs: new Set(),
+  report(key, val) {
+    if (JSON.stringify(this.cur[key]) === JSON.stringify(val)) return;
+    this.cur = { ...this.cur, [key]: val };
+    this.subs.forEach((fn) => { try { fn(this.cur); } catch {} });
+  },
+  sub(fn) { this.subs.add(fn); return () => this.subs.delete(fn); },
+};
+const castFollow = {
+  last: null,
+  subs: new Set(),
+  apply(detail) { this.last = detail || {}; this.subs.forEach((fn) => { try { fn(this.last); } catch {} }); },
+  sub(fn) { this.subs.add(fn); if (this.last) { try { fn(this.last); } catch {} } return () => this.subs.delete(fn); },
+  reset() { this.last = null; },
+};
+
+/* ============================================================
    NEWS — 연수와 연결되는 최신 소식 (각 카드는 원문 링크로 이동)
    img 칸에 권리를 확보한 이미지 링크를 넣으면 커버로 표시됩니다(비우면 색상 커버).
    ============================================================ */
@@ -1448,6 +1474,33 @@ function MindMapView({ openTerm, readNodes, markNode }) {
     openLeaf(LEAVES[pos].node.id);
   };
 
+  // ── 화면 방송: 내가 보는 지도 위치(가지 경로·열린 말단)를 알림 ──
+  useEffect(() => {
+    castDetail.report("map", { path: path.map((p) => p.id), leaf: detail || null });
+  }, [path, detail]);
+  // ── 화면 방송: 강사의 지도 이동을 따라감 (참여자 화면에서만 신호가 옴) ──
+  const castRef = useRef(null);
+  castRef.current = { path, detail, openLeaf };
+  useEffect(() => castFollow.sub((d) => {
+    const m = d && d.map;
+    if (!m || (d._tab && d._tab !== "learn")) return; // 강사가 다른 탭을 보는 중이면 지도는 그대로 둠
+    const cur = castRef.current;
+    if (m.leaf) { if (m.leaf !== cur.detail && LEAF_POS[m.leaf] != null) cur.openLeaf(m.leaf); return; }
+    // 말단 없이 가지만 이동한 경우 — id 경로를 노드 배열로 복원
+    const want = (m.path || []).join("/");
+    if (want === cur.path.map((p) => p.id).join("/") && !cur.detail) return;
+    const nodes = [];
+    let level = MAP;
+    for (const id of m.path || []) {
+      const n = (level || []).find((x) => x.id === id);
+      if (!n) break;
+      nodes.push(n);
+      level = n.children;
+    }
+    setPath(nodes);
+    setDetail(null);
+  }), []); // eslint-disable-line
+
   const pts = radial(children.length, children.length <= 4 ? 33 : 37);
   const visited = readNodes.size;
   const pct = Math.round((visited / TOTAL_NODES) * 100);
@@ -2403,6 +2456,26 @@ function IdeKit({ openTerm }) {
     });
   };
 
+  // ── 화면 방송: 내가 보는 키트·단계를 알림 ──
+  useEffect(() => {
+    castDetail.report("kit", { kitKey, activeId });
+  }, [kitKey, activeId]);
+  // ── 화면 방송: 강사가 키트를 바꾸거나 단계를 넘기면 같은 화면으로 이동 ──
+  const ideRef = useRef(null);
+  const castRef = useRef(null);
+  castRef.current = { kitKey, activeId, selectKit, open };
+  useEffect(() => castFollow.sub((d) => {
+    const k = d && d.kit;
+    if (!k || !k.activeId || (d._tab && d._tab !== "kit")) return;
+    const cur = castRef.current;
+    const kitChanged = k.kitKey && k.kitKey !== cur.kitKey;
+    if (!kitChanged && k.activeId === cur.activeId) return;
+    if (kitChanged) cur.selectKit(k.kitKey);
+    cur.open(k.activeId);
+    // 실습 IDE가 화면 아래쪽에 있어, 따라갈 때 보이도록 살짝 스크롤
+    try { ideRef.current && ideRef.current.scrollIntoView({ behavior: "smooth", block: "start" }); } catch {}
+  }), []); // eslint-disable-line
+
   const stepIdx = STEP_IDS.indexOf(activeId);
   const isStep = stepIdx >= 0;
   const prevStep = stepIdx > 0 ? steps[stepIdx - 1] : null;
@@ -2430,7 +2503,7 @@ function IdeKit({ openTerm }) {
   };
 
   return (
-    <div className="kit-wrap">
+    <div className="kit-wrap" ref={ideRef}>
       {/* 키트 선택 (3개 트랙) */}
       <div className="kit-switch">
         {KITS.map((k) => (
@@ -2850,9 +2923,9 @@ export default function App() {
 
 /* ---------- 입장 화면 ---------- */
 function EntryScreen({ onJoin }) {
-  const [school, setSchool] = useState("서울미술고등학교");
+  const [school, setSchool] = useState("동양중학교");
   const [nick, setNick] = useState("");
-  const [session, setSession] = useState("");
+  const [session, setSession] = useState("20260818");
   const [pin, setPin] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -2874,9 +2947,9 @@ function EntryScreen({ onJoin }) {
           <p className="text-indigo-200 text-[13px] mt-3 leading-relaxed">웹의 구조를 이해하고, 개인정보 걱정 없이 데이터를 다루며, 실제로 작동하는 도구를 직접 배포합니다.</p>
         </div>
         <div className="rounded-b-3xl bg-white border border-t-0 border-slate-200 p-7 space-y-4">
-          <Field label="학교명" value={school} onChange={setSchool} placeholder="예) 서울미술고등학교" onEnter={go} />
+          <Field label="학교명" value={school} onChange={setSchool} placeholder="예) 동양중학교" onEnter={go} />
           <Field label="별명" value={nick} onChange={setNick} placeholder="예) 디자인쌤" onEnter={go} />
-          <Field label="세션 코드 (선택)" value={session} onChange={setSession} placeholder="비우면 DEMO" hint="강사가 운영자 페이지에서 정한 세션 코드를 넣으면 같은 방으로 모입니다" onEnter={go} />
+          <Field label="세션 코드 (선택)" value={session} onChange={setSession} placeholder="비우면 DEMO" hint="오늘 연수는 20260818 세션으로 모입니다 — 그대로 두고 입장하세요" onEnter={go} />
           <div>
             <label className="block text-[13px] font-bold text-slate-600 mb-1.5">내 비밀번호 (숫자 4자리)</label>
             <input value={pin} onChange={(e) => { setPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setErr(""); }}
@@ -3724,6 +3797,7 @@ function ShareView({ me, adminOk }) {
                       )}
                     </div>
                   )}
+                  <ItemComments s={s} itemId={it.id} me={me} adminOk={adminOk} />
                 </div>
               ))}
             </div>
@@ -3732,6 +3806,69 @@ function ShareView({ me, adminOk }) {
             여러 기기(다른 연수생)와 실시간으로 공유하려면 이 앱의 저장소를 Firebase Firestore에 연결하세요 — 오늘 배운 그 기술입니다.
           </p>
         </>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   공유 마당 · 작품 댓글 — 카드마다 gcmt_{세션}_{작품id} 문서에 배열로 저장.
+   arrayUnion(sPush)이라 여러 명이 동시에 달아도 안 지워지고, 실시간 구독으로 즉시 보입니다.
+   ============================================================ */
+function ItemComments({ s, itemId, me, adminOk }) {
+  const [open, setOpen] = useState(false);
+  const [cmts, setCmts] = useState([]);
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const key = `gcmt_${s}_${itemId}`;
+
+  useEffect(() => sSub(key, (c) => setCmts(Array.isArray(c) ? c : [])), [key]);
+
+  const send = async () => {
+    const t = draft.trim();
+    if (!t || busy) return;
+    setBusy(true);
+    try {
+      await sPush(key, { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), uid: me.uid, nick: me.nick, school: me.school, text: t.slice(0, 300), ts: Date.now() });
+    } catch {}
+    setDraft(""); setBusy(false);
+  };
+  const removeCmt = async (id) => {
+    const cur = (await sGet(key, true)) || [];
+    await sSet(key, (Array.isArray(cur) ? cur : []).filter((c) => c.id !== id), true);
+  };
+
+  const sorted = cmts.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0));
+
+  return (
+    <div className="mt-3 pt-2.5 border-t border-slate-100">
+      <button onClick={() => setOpen(!open)} className="text-[12px] font-bold text-slate-500 hover:text-emerald-700 flex items-center gap-1.5">
+        <MessageSquare size={13} className="text-emerald-600" /> 댓글 {sorted.length > 0 ? sorted.length : ""}
+        {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+      </button>
+      {open && (
+        <div className="mt-2 space-y-1.5">
+          {sorted.length === 0 && <p className="text-[11.5px] text-slate-300">첫 댓글로 응원을 남겨 보세요! 👏</p>}
+          {sorted.map((c) => (
+            <div key={c.id} className="flex items-start gap-1.5 text-[12.5px] bg-slate-50 rounded-lg px-2.5 py-1.5">
+              <span className="font-bold text-emerald-700 shrink-0">{c.nick}</span>
+              <span className="flex-1 text-slate-700 leading-relaxed break-words min-w-0">{c.text}</span>
+              {(c.uid === me.uid || adminOk) && (
+                <button onClick={() => removeCmt(c.id)} title="댓글 삭제" className="text-slate-300 hover:text-rose-500 shrink-0"><X size={12} /></button>
+              )}
+            </div>
+          ))}
+          <div className="flex gap-1.5 pt-0.5">
+            <input value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={300}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) send(); }}
+              placeholder="응원·질문 한마디 (Enter 전송)"
+              className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12.5px] outline-none focus:border-emerald-400 bg-white" />
+            <button onClick={send} disabled={!draft.trim() || busy}
+              className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-[12px] font-bold shrink-0">
+              <Send size={12} />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -4368,6 +4505,8 @@ function QuickQuizFab({ me }) {
    CAST — 강사 화면 방송 (강사가 보는 탭·용어 팝업을 참여자가 따라감)
    - 강사: 📡 버튼으로 방송 켜기/끄기. 켜면 현재 페이지가 8초 심장박동과
      함께 cast_{세션}에 기록됩니다.
+   - 탭 안쪽 세부 화면(학습지도 말단, 실습 키트 단계 등)도 castDetail 버스로
+     모아 detail 필드에 함께 실립니다.
    - 참여자: 방송이 켜지면 하단에 안내 바가 뜨고, 강사가 페이지를 넘길
      때마다 같은 페이지로 자동 이동(일시정지 가능).
    ============================================================ */
@@ -4380,10 +4519,12 @@ function CastControl({ s, me, tab, activeTerm }) {
 
   useEffect(() => {
     if (!on) return;
-    const payload = () => ({ on: true, tab: lastTabRef.current, term: activeTerm || null, nick: me.nick, ts: Date.now() });
+    const payload = () => ({ on: true, tab: lastTabRef.current, term: activeTerm || null, detail: castDetail.cur, nick: me.nick, ts: Date.now() });
     sSet(`cast_${s}`, payload(), true);
     const id = setInterval(() => sSet(`cast_${s}`, payload(), true), 8000);
-    return () => clearInterval(id);
+    // 세부 화면(지도 말단·실습 단계)이 바뀌는 즉시 방송 신호 갱신
+    const unsub = castDetail.sub(() => sSet(`cast_${s}`, payload(), true));
+    return () => { clearInterval(id); unsub(); };
   }, [on, tab, activeTerm, s]); // eslint-disable-line
 
   // 방송 중 시청자 수 — 참여자들이 남기는 심장박동(cast_seen)을 실시간 집계
@@ -4433,7 +4574,14 @@ function FollowCast({ me, setTab, setActiveTerm }) {
     if (cast.tab && cast.tab !== ap.tab) { setTab(cast.tab); ap.tab = cast.tab; }
     const term = cast.term || null;
     if (term !== ap.term) { setActiveTerm(term); ap.term = term; }
+    // 탭 안쪽 세부 화면(학습지도 말단·실습 단계 등)도 바뀐 경우에만 전달
+    // (탭이 바뀌면 새로 열린 화면이 마지막 세부 위치를 따라잡도록 탭도 비교에 포함)
+    const dj = (cast.tab || "") + "|" + JSON.stringify(cast.detail || {});
+    if (dj !== ap.detail) { castFollow.apply({ ...(cast.detail || {}), _tab: cast.tab }); ap.detail = dj; }
   }, [cast, follow]); // eslint-disable-line
+
+  // 방송이 끝나거나 따라가기를 멈추면 세부 상태 replay도 중단
+  useEffect(() => { if (!cast || !follow) castFollow.reset(); }, [!!cast, follow]); // eslint-disable-line
 
   if (!STORAGE_OK || !cast) return null;
   return (
@@ -4532,7 +4680,7 @@ function AdminView({ me, setTab, onAuthed, preAuthed }) {
   const [roster, setRoster] = useState([]);
   const [mail, setMail] = useState([]);
   const [gallery, setGallery] = useState([]);
-  const [stSchool, setStSchool] = useState("서울미술고등학교");
+  const [stSchool, setStSchool] = useState("동양중학교");
   const [stSection, setStSection] = useState("");
   const [stNotice, setStNotice] = useState("");
   const [stShareOn, setStShareOn] = useState(true);
@@ -4542,7 +4690,7 @@ function AdminView({ me, setTab, onAuthed, preAuthed }) {
     const r = await sGet(`roster_${s}`, true); const m = await sGet(`mailbox_${s}`, true); const g = await sGet(`gallery_${s}`, true);
     setRoster(Array.isArray(r) ? r : []); setMail(Array.isArray(m) ? m : []); setGallery(Array.isArray(g) ? g : []);
     const st = (await sGet(`settings_${s}`, true)) || {};
-    setStSchool(st.school || "서울미술고등학교"); setStSection(st.section || ""); setStNotice(st.notice || ""); setStShareOn(st.shareOn !== false);
+    setStSchool(st.school || "동양중학교"); setStSection(st.section || ""); setStNotice(st.notice || ""); setStShareOn(st.shareOn !== false);
   };
   useEffect(() => {
     if (!authed) return;
