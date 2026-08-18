@@ -7,7 +7,7 @@ import {
   GitBranch, Folder, FolderOpen, FileCode, FileText, Play, Compass,
   Layers, Cpu, MessageSquare, Bug, Table as TableIcon, Boxes, Wallet, Code2,
   Sliders, Maximize2, Circle, Newspaper, ExternalLink, TrendingUp, Share2, Link2,
-  Trophy, Zap
+  Trophy, Zap, LogOut
 } from "lucide-react";
 
 /* ============================================================
@@ -1005,9 +1005,26 @@ const QUIZ = [
    ============================================================ */
 const MASTER_PW = "zz007031"; // 운영자(황미란 선생님) 마스터 비밀번호 — 어느 세션이든 입장 가능
 
-const LIVEQ_CATS = { smalltalk: "☕ 스몰토크", ai: "🤖 AI 상식", news: "📰 AI 뉴스", custom: "✏️ 자작 퀴즈" };
+const LIVEQ_CATS = { icebreak: "👋 첫 인사", smalltalk: "☕ 스몰토크", ai: "🤖 AI 상식", news: "📰 AI 뉴스", custom: "✏️ 자작 퀴즈" };
 
 const LIVEQ_BANK = [
+  // ── 👋 첫 인사 (연수 시작할 때 발사하는 아이스브레이킹 3종) ──
+  { cat: "icebreak", q: "👋 첫 만남 퀴즈! 오늘 강사 황미란 선생님의 전공과목은 무엇일까요?", o: ["정보", "국어", "윤리", "미술", "수학"], a: 3,
+    explain: "정답은 미술! 🎨 '코딩은 정보 선생님만 하는 것'이라는 편견을 깨는 게 오늘 연수의 시작입니다. 미술 교사도 앱을 만드는 시대, 선생님도 하실 수 있어요!" },
+  { cat: "icebreak", survey: true, q: "🙋 솔직 설문! 선생님은 '바이브 코딩'을 어디까지 해보셨나요?", o: [
+      "오늘 처음 들어봤어요",
+      "기사·유튜브로 구경만 해봤어요",
+      "GPT·제미나이에게 \"~앱 만들어줘\" 해서 코드를 받아본 적 있어요",
+      "받은 코드를 실행하거나 배포(내 주소로 공개)까지 해봤어요",
+      "이미 수업·업무에 만들어 쓰고 있어요"], a: null,
+    explain: "정답이 없는 설문이에요 😊 어디에 계시든 괜찮습니다. 오늘 3시간이면 '처음 들어봤어요'에서 '배포까지 해봤어요'로 갈 수 있어요!" },
+  { cat: "icebreak", survey: true, etc: true, q: "🎯 오늘 강의에서 가장 얻어가고 싶은 것은 무엇인가요?", o: [
+      "AI로 앱을 만드는 전 과정을 한번 경험해 보기",
+      "수업·학급 운영에 바로 쓸 나만의 도구 만들기",
+      "개인정보·보안 걱정 없이 안전하게 쓰는 방법",
+      "AI에게 잘 시키는 프롬프트 요령",
+      "기타 (직접 입력할게요!)"], a: null,
+    explain: "말씀해 주신 기대를 최대한 채워 드릴게요. 특히 '기타'로 적어 주신 내용은 강의 중간중간 꼭 다루겠습니다 🙌" },
   // ── ☕ 스몰토크 (2026년 2학기 개학일 · 오늘 연수 오신 선생님들 안부 + 유머) ──
   { cat: "smalltalk", q: "🌅 오늘, 2026년 2학기 개학일 아침! 알람이 울렸을 때 대한민국 선생님들의 표준 반응은?", o: ["\"벌써…?\"", "\"아직 방학이잖아…\"", "\"제발 꿈이길\"", "모두 정답"], a: 3,
     explain: "네, 모두 정답입니다 😂 그 마음을 안고 개학 첫날 연수까지 와 주신 것만으로 이미 대단하십니다. 박수 한번 드려요 👏" },
@@ -2680,6 +2697,18 @@ export default function App() {
     return null;
   };
 
+  // 로그아웃: 명단에서 나를 빼고 입장 화면으로 (별명 비밀번호는 그대로 남아요)
+  const logout = async () => {
+    if (!me) return;
+    if (!window.confirm(`${me.nick} 님, 로그아웃할까요?\n(입장 화면으로 돌아갑니다)`)) return;
+    try {
+      const cur = (await sGet(`roster_${me.session}`, true)) || [];
+      if (Array.isArray(cur)) await sSet(`roster_${me.session}`, cur.filter((p) => p?.uid !== me.uid), true);
+    } catch {}
+    try { localStorage.removeItem("vc:me"); localStorage.removeItem("vc:chat_seen"); sessionStorage.removeItem("vc_admin_ok"); } catch {}
+    window.location.reload();
+  };
+
   if (!booted) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400">불러오는 중…</div>;
   if (!me) return <EntryScreen onJoin={join} />;
 
@@ -2715,6 +2744,10 @@ export default function App() {
           <button onClick={() => setTab("admin")} title="운영자 페이지"
             className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${tab === "admin" ? "bg-indigo-950 text-amber-400" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
             <Lock size={15} />
+          </button>
+          <button onClick={logout} title="로그아웃 (입장 화면으로 돌아가기)"
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-slate-100 text-slate-500 hover:bg-rose-100 hover:text-rose-600 transition-colors">
+            <LogOut size={15} />
           </button>
         </div>
         <nav className="max-w-5xl mx-auto px-2 flex gap-1 overflow-x-auto no-scrollbar pb-2">
@@ -3664,6 +3697,8 @@ function LiveQuizOverlay({ me }) {
   const [result, setResult] = useState(null);
   const [hidden, setHidden] = useState(null);
   const [minz, setMinz] = useState(false);
+  const [etcOpen, setEtcOpen] = useState(false);   // '기타(직접 입력)' 보기를 골랐을 때 입력창 표시
+  const [etcText, setEtcText] = useState("");
 
   useEffect(() => {
     let on = true;
@@ -3677,7 +3712,7 @@ function LiveQuizOverlay({ me }) {
 
   // 새 퀴즈가 발사되면 상태 초기화 + 팝업 다시 열기
   useEffect(() => {
-    if (live && live.id !== qid) { setQid(live.id); setMyPick(null); setResult(null); setMinz(false); setHidden(null); }
+    if (live && live.id !== qid) { setQid(live.id); setMyPick(null); setResult(null); setMinz(false); setHidden(null); setEtcOpen(false); setEtcText(""); }
   }, [live, qid]);
 
   // 정답 공개 시 내 획득 점수·순위 불러오기
@@ -3686,11 +3721,15 @@ function LiveQuizOverlay({ me }) {
     (async () => {
       try {
         const ans = (await sGet(`qz_ans_${s}_${live.id}`, true)) || [];
-        const mine = Array.isArray(ans) ? ans.find((a) => a.uid === me.uid) : null;
+        const arr = Array.isArray(ans) ? ans : [];
+        const mine = arr.find((a) => a.uid === me.uid);
         const sc = (await sGet(`qz_scores_${s}`, true)) || {};
         const rows = Object.entries(sc).map(([uid, v]: [string, any]) => ({ uid, ...(v || {}) })).sort((a, b) => (b.pts || 0) - (a.pts || 0));
         const idx = rows.findIndex((r) => r.uid === me.uid);
-        setResult({ pick: mine ? mine.choice : null, gain: mine ? mine.gain || 0 : 0, rank: idx >= 0 ? idx + 1 : null, myPts: idx >= 0 ? rows[idx].pts || 0 : 0, top: rows.slice(0, 5) });
+        // 설문형이면 보기별 응답 수와 '기타' 주관식 답변을 함께 집계
+        const counts = live.o.map((_, oi) => arr.filter((a) => a.choice === oi).length);
+        const etcAnswers = arr.filter((a) => a.text && a.text.trim()).map((a) => ({ nick: a.nick, text: a.text.trim() }));
+        setResult({ pick: mine ? mine.choice : null, gain: mine ? mine.gain || 0 : 0, rank: idx >= 0 ? idx + 1 : null, myPts: idx >= 0 ? rows[idx].pts || 0 : 0, top: rows.slice(0, 5), counts, total: arr.length, etcAnswers });
       } catch {}
     })();
   }, [live, result, s, me.uid]);
@@ -3704,15 +3743,17 @@ function LiveQuizOverlay({ me }) {
   const left = isLive ? Math.max(0, Math.ceil(leftMs / 1000)) : 0;
   const pct = isLive ? Math.max(0, Math.min(100, (leftMs / (live.dur * 1000)) * 100)) : 0;
 
-  const submit = async (oi) => {
+  const submit = async (oi, text = "") => {
     if (myPick != null || !isLive || left <= 0) return;
-    setMyPick(oi);
+    // '기타(직접 입력)' 보기는 먼저 입력창을 열고, 입력 후 제출 버튼으로 확정
+    if (live.etc && oi === live.o.length - 1 && !text) { setEtcOpen(true); return; }
+    setMyPick(oi); setEtcOpen(false);
     try {
       const key = `qz_ans_${s}_${live.id}`;
       const cur = (await sGet(key, true)) || [];
       const arr = Array.isArray(cur) ? cur : [];
       if (!arr.some((a) => a.uid === me.uid))
-        await sSet(key, [...arr, { uid: me.uid, nick: me.nick, school: me.school, choice: oi, ts: Date.now() }], true);
+        await sSet(key, [...arr, { uid: me.uid, nick: me.nick, school: me.school, choice: oi, text: text.slice(0, 200), ts: Date.now() }], true);
     } catch {}
   };
 
@@ -3747,22 +3788,43 @@ function LiveQuizOverlay({ me }) {
           {live.o.map((o, oi) => {
             let cls = "bg-slate-50 border-slate-200 hover:border-violet-400 text-slate-700";
             if (revealed) {
-              if (oi === live.a) cls = "bg-emerald-50 border-emerald-400 text-emerald-800";
+              if (live.survey) cls = result && result.pick === oi ? "bg-violet-50 border-violet-400 text-violet-800" : "bg-white border-slate-100 text-slate-500";
+              else if (oi === live.a) cls = "bg-emerald-50 border-emerald-400 text-emerald-800";
               else if (result && result.pick === oi) cls = "bg-rose-50 border-rose-300 text-rose-700";
               else cls = "bg-white border-slate-100 text-slate-400";
             } else if (myPick != null) {
               cls = oi === myPick ? "bg-violet-50 border-violet-400 text-violet-800" : "bg-white border-slate-100 text-slate-400";
             } else if (left <= 0) cls = "bg-white border-slate-100 text-slate-400";
+            const cnt = revealed && live.survey && result ? result.counts?.[oi] || 0 : null;
+            const pctBar = cnt != null && result.total > 0 ? Math.round((cnt / result.total) * 100) : 0;
             return (
               <button key={oi} onClick={() => submit(oi)} disabled={myPick != null || !isLive || left <= 0}
-                className={`w-full flex items-center gap-2.5 rounded-xl border-2 p-3 text-left text-[14px] font-semibold transition-colors ${cls}`}>
-                <span className="w-6 h-6 rounded-full border flex items-center justify-center shrink-0 text-[12px] font-bold">
-                  {revealed && oi === live.a ? <Check size={14} /> : String.fromCharCode(65 + oi)}
+                className={`relative overflow-hidden w-full flex items-center gap-2.5 rounded-xl border-2 p-3 text-left text-[14px] font-semibold transition-colors ${cls}`}>
+                {cnt != null && <span className="absolute inset-y-0 left-0 bg-violet-100/70 -z-0" style={{ width: pctBar + "%" }} />}
+                <span className="relative w-6 h-6 rounded-full border flex items-center justify-center shrink-0 text-[12px] font-bold">
+                  {revealed && !live.survey && oi === live.a ? <Check size={14} /> : String.fromCharCode(65 + oi)}
                 </span>
-                {o}
+                <span className="relative flex-1">{o}</span>
+                {cnt != null && <span className="relative shrink-0 text-[12px] font-bold text-violet-600">{cnt}명 · {pctBar}%</span>}
               </button>
             );
           })}
+
+          {/* '기타' 보기를 고른 뒤 주관식 입력 */}
+          {isLive && etcOpen && myPick == null && (
+            <div className="rounded-xl border-2 border-violet-300 bg-violet-50 p-3 space-y-2">
+              <p className="text-[12.5px] font-bold text-violet-700">✏️ 직접 적어 주세요! (제출하면 강사에게 전달돼요)</p>
+              <input value={etcText} onChange={(e) => setEtcText(e.target.value)} autoFocus maxLength={200}
+                onKeyDown={(e) => { if (e.key === "Enter" && etcText.trim()) submit(live.o.length - 1, etcText.trim()); }}
+                placeholder="예) 학부모 상담용 예약 앱을 만들고 싶어요"
+                className="w-full px-3 py-2 rounded-lg border border-violet-200 text-[13px] outline-none focus:border-violet-500 bg-white" />
+              <div className="flex gap-2">
+                <button onClick={() => etcText.trim() && submit(live.o.length - 1, etcText.trim())} disabled={!etcText.trim()}
+                  className="px-3.5 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white text-[12.5px] font-bold">제출</button>
+                <button onClick={() => setEtcOpen(false)} className="px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-500 text-[12.5px] font-bold">취소</button>
+              </div>
+            </div>
+          )}
 
           {isLive && myPick != null && (
             <div className="rounded-xl bg-violet-50 border border-violet-200 p-3 text-[13px] text-violet-700 font-semibold text-center">
@@ -3772,10 +3834,22 @@ function LiveQuizOverlay({ me }) {
 
           {revealed && result && (
             <div className="space-y-3 pt-1">
-              <div className={`rounded-xl p-3.5 text-center font-extrabold text-[15px] ${result.pick === live.a ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-600"}`}>
-                {result.pick == null ? "이번엔 구경만 하셨네요 😉 다음 퀴즈를 노려 보세요!" :
-                  result.pick === live.a ? `🎉 정답! +${result.gain}점 획득!` : "아쉬워요! 다음 기회에… 💪"}
+              <div className={`rounded-xl p-3.5 text-center font-extrabold text-[15px] ${live.survey ? (result.pick == null ? "bg-slate-50 text-slate-500" : "bg-violet-50 text-violet-700") : result.pick === live.a ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-600"}`}>
+                {live.survey
+                  ? (result.pick == null ? "이번엔 구경만 하셨네요 😉 의견도 점수가 돼요!" : `🙌 의견 감사합니다! +${result.gain}점 (참여 점수)`)
+                  : result.pick == null ? "이번엔 구경만 하셨네요 😉 다음 퀴즈를 노려 보세요!" :
+                    result.pick === live.a ? `🎉 정답! +${result.gain}점 획득!` : "아쉬워요! 다음 기회에… 💪"}
               </div>
+              {live.survey && result.etcAnswers && result.etcAnswers.length > 0 && (
+                <div className="rounded-xl border border-violet-200 overflow-hidden">
+                  <div className="bg-violet-50 px-3 py-2 text-[12px] font-bold text-violet-600">✏️ 직접 적어 주신 의견</div>
+                  {result.etcAnswers.map((a, i) => (
+                    <div key={i} className="px-3 py-2 text-[13px] border-t border-violet-100 text-slate-700">
+                      <b className="text-violet-700">{a.nick}</b> · {a.text}
+                    </div>
+                  ))}
+                </div>
+              )}
               {live.explain && (
                 <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-[13px] text-amber-800 leading-relaxed">💡 {live.explain}</div>
               )}
@@ -3812,7 +3886,7 @@ function LiveQuizOverlay({ me }) {
    ============================================================ */
 async function qzLaunch(s, item, dur) {
   const id = "q" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-  const quiz = { id, cat: item.cat, q: item.q, o: item.o, a: item.a, explain: item.explain || "", startTs: Date.now(), dur, phase: "live" };
+  const quiz = { id, cat: item.cat, q: item.q, o: item.o, a: item.a, survey: !!item.survey, etc: !!item.etc, explain: item.explain || "", startTs: Date.now(), dur, phase: "live" };
   await sSet(`qz_ans_${s}_${id}`, [], true);
   await sSet(`qz_live_${s}`, quiz, true);
   return quiz;
@@ -3828,7 +3902,11 @@ async function qzFinish(s) {
   arr.forEach((an) => {
     const row = sc[an.uid] || { nick: an.nick, school: an.school, pts: 0, correct: 0, played: 0 };
     row.nick = an.nick; row.played = (row.played || 0) + 1;
-    if (an.choice === cur.a) {
+    if (cur.survey) {
+      // 설문형: 정답이 없으니 참여 점수만 지급
+      an.gain = 50;
+      row.pts = (row.pts || 0) + an.gain;
+    } else if (an.choice === cur.a) {
       const elapsed = Math.max(0, (an.ts - cur.startTs) / 1000);
       an.gain = 100 + Math.round(Math.max(0, 1 - elapsed / cur.dur) * 100);
       row.pts = (row.pts || 0) + an.gain;
@@ -3925,13 +4003,37 @@ function LiveQuizPanel({ s, roster, flash }) {
             <span className="text-[11px] font-bold text-violet-500">{LIVEQ_CATS[live.cat] || ""} · {live.dur}초</span>
           </div>
           <p className="font-bold text-[14.5px] text-slate-800 leading-snug">{live.q}</p>
-          <p className="text-[12px] text-emerald-700 font-semibold">정답: {String.fromCharCode(65 + live.a)}. {live.o[live.a]}</p>
+          {live.survey
+            ? <p className="text-[12px] text-violet-600 font-semibold">📊 설문형 (정답 없음 · 참여 +50점) — 마감하면 응답 분포가 공개돼요</p>
+            : <p className="text-[12px] text-emerald-700 font-semibold">정답: {String.fromCharCode(65 + live.a)}. {live.o[live.a]}</p>}
+          {live.survey && answers.length > 0 && (
+            <div className="space-y-1">
+              {live.o.map((o, oi) => {
+                const c = answers.filter((a2) => a2.choice === oi).length;
+                const p = Math.round((c / answers.length) * 100);
+                return (
+                  <div key={oi} className="flex items-center gap-2 text-[11.5px]">
+                    <span className="w-4 font-bold text-slate-400">{String.fromCharCode(65 + oi)}</span>
+                    <div className="flex-1 h-3.5 bg-white rounded-full overflow-hidden border border-violet-100">
+                      <div className="h-full bg-violet-400" style={{ width: p + "%" }} />
+                    </div>
+                    <span className="w-16 text-right font-bold text-violet-600">{c}명 · {p}%</span>
+                  </div>
+                );
+              })}
+              {answers.filter((a2) => a2.text && a2.text.trim()).map((a2) => (
+                <div key={a2.uid} className="text-[12px] text-slate-600 bg-white rounded-lg border border-violet-100 px-2.5 py-1.5">
+                  ✏️ <b className="text-violet-700">{a2.nick}</b>: {a2.text}
+                </div>
+              ))}
+            </div>
+          )}
           <div>
             <div className="text-[12px] font-bold text-slate-600 mb-1.5">응답 {answers.length}명 / 참여자 {roster.length}명 <span className="font-normal text-slate-400">(빨리 답한 순서)</span></div>
             <div className="flex flex-wrap gap-1.5">
               {answers.length === 0 ? <span className="text-[12px] text-slate-400">아직 응답이 없어요…</span> :
                 answers.slice().sort((a, b) => a.ts - b.ts).map((a2, i) => (
-                  <span key={a2.uid} className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${live.phase === "revealed" ? (a2.choice === live.a ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-600") : "bg-white border border-violet-200 text-violet-700"}`}>
+                  <span key={a2.uid} className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${live.phase === "revealed" ? (live.survey ? "bg-violet-100 text-violet-700" : a2.choice === live.a ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-600") : "bg-white border border-violet-200 text-violet-700"}`}>
                     {i + 1}. {a2.nick}{live.phase === "revealed" && a2.gain ? ` +${a2.gain}` : ""}
                   </span>
                 ))}
@@ -3945,7 +4047,7 @@ function LiveQuizPanel({ s, roster, flash }) {
       ) : (
         <>
           <div className="flex items-center gap-2 flex-wrap">
-            {[["all", "전체"], ["smalltalk", LIVEQ_CATS.smalltalk], ["ai", LIVEQ_CATS.ai], ["news", LIVEQ_CATS.news]].map(([k, l]) => (
+            {[["all", "전체"], ["icebreak", LIVEQ_CATS.icebreak], ["smalltalk", LIVEQ_CATS.smalltalk], ["ai", LIVEQ_CATS.ai], ["news", LIVEQ_CATS.news]].map(([k, l]) => (
               <button key={k} onClick={() => setCat(k)} className={`px-3 py-1.5 rounded-full text-[12px] font-bold transition-colors ${cat === k ? "bg-violet-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>{l}</button>
             ))}
             <div className="ml-auto flex items-center gap-1.5">
@@ -3960,7 +4062,7 @@ function LiveQuizPanel({ s, roster, flash }) {
               <div key={i} className="flex items-center gap-3 p-3 hover:bg-slate-50">
                 <div className="min-w-0 flex-1">
                   <div className="text-[13px] font-bold text-slate-700 leading-snug">{b.q}</div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">{LIVEQ_CATS[b.cat]} · 정답 {String.fromCharCode(65 + b.a)}. {b.o[b.a]}</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">{LIVEQ_CATS[b.cat]} · {b.survey ? "📊 설문형 (정답 없음)" : `정답 ${String.fromCharCode(65 + b.a)}. ${b.o[b.a]}`}</div>
                 </div>
                 <button onClick={() => launch(b)} className="shrink-0 px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-[12px] font-bold flex items-center gap-1"><Rocket size={12} /> 발사</button>
               </div>
@@ -4025,7 +4127,7 @@ function QuickQuizFab({ me }) {
   const [open, setOpen] = useState(false);
   const [live, setLive] = useState(null);
   const [answers, setAnswers] = useState([]);
-  const [cat, setCat] = useState("smalltalk");
+  const [cat, setCat] = useState("icebreak");
   const [dur, setDur] = useState(20);
   const [now, setNow] = useState(Date.now());
   const [fired, setFired] = useState(() => new Set());
@@ -4121,7 +4223,7 @@ function QuickQuizFab({ me }) {
       )}
 
       <div className="px-3 pt-2.5 pb-1.5 flex items-center gap-1 flex-wrap">
-        {[["smalltalk", "☕ 스몰토크"], ["ai", "🤖 AI"], ["news", "📰 뉴스"], ["all", "전체"]].map(([k, l]) => (
+        {[["icebreak", "👋 첫 인사"], ["smalltalk", "☕ 스몰토크"], ["ai", "🤖 AI"], ["news", "📰 뉴스"], ["all", "전체"]].map(([k, l]) => (
           <button key={k} onClick={() => setCat(k)}
             className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${cat === k ? "bg-violet-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>{l}</button>
         ))}
