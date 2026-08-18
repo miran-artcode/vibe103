@@ -28,6 +28,31 @@ async function sSet(key, val, shared = false) {
   if (LS_OK) { try { window.localStorage.setItem("vc:" + key, JSON.stringify(val)); return { key, value: val }; } catch {} }
   return null;
 }
+// 실시간 구독 — Firestore onSnapshot이 있으면 바뀌는 즉시 cb(value), 없으면 폴링으로 대체.
+// useEffect(() => sSub(key, cb), [deps]) 형태로 쓰면 청소(구독 해제)까지 자동.
+function sSub(key, cb, pollMs = 4000) {
+  if (STORAGE_OK && window.storage.subscribe) {
+    try { return window.storage.subscribe(key, cb); } catch {}
+  }
+  let on = true;
+  const tick = async () => { const v = await sGet(key, true); if (on) cb(v); };
+  tick();
+  const id = setInterval(tick, pollMs);
+  return () => { on = false; clearInterval(id); };
+}
+// 배열 문서에 항목 덧붙이기 — arrayUnion이라 여러 명이 동시에 제출해도 서로 안 지워짐
+async function sPush(key, item) {
+  if (STORAGE_OK && window.storage.push) { try { await window.storage.push(key, item); return; } catch {} }
+  const cur = (await sGet(key, true)) || [];
+  const arr = Array.isArray(cur) ? cur : [];
+  await sSet(key, [...arr, item], true);
+}
+// 맵 문서에 내 필드만 병합 — 방송 시청자 심장박동 등
+async function sMerge(key, patch) {
+  if (STORAGE_OK && window.storage.merge) { try { await window.storage.merge(key, patch); return; } catch {} }
+  const cur = (await sGet(key, true)) || {};
+  await sSet(key, { ...(cur && typeof cur === "object" ? cur : {}), ...patch }, true);
+}
 
 /* ============================================================
    NEWS — 연수와 연결되는 최신 소식 (각 카드는 원문 링크로 이동)
@@ -2640,6 +2665,29 @@ function IdeKit({ openTerm }) {
 function CornerNote() { return <span className="ide-note-ic"><FileText size={13} /></span>; }
 
 /* ============================================================
+   실시간 공유 연결 상태 배지 — 퀴즈·방송이 "왜 안 뜨는지" 숨기지 않고 보여줍니다.
+   🟢 실시간: Firestore 연결 정상 (발사·방송이 모두에게 즉시 전달)
+   🔴 공유 안 됨: 익명 인증 꺼짐 / 보안 규칙 미게시 / 네트워크 문제 — 누르면 이유 표시
+   ============================================================ */
+function ShareStatus() {
+  const [st, setSt] = useState(() => (typeof window !== "undefined" && window.storageStatus) || { state: STORAGE_OK ? "connecting" : "error", detail: STORAGE_OK ? "" : "Firebase 설정이 비어 있어요." });
+  useEffect(() => {
+    const h = (e) => setSt(e.detail || { state: "error", detail: "" });
+    window.addEventListener("vc:storage-status", h);
+    return () => window.removeEventListener("vc:storage-status", h);
+  }, []);
+  const ok = st.state === "ok", err = st.state === "error";
+  return (
+    <button
+      onClick={() => { if (err) window.alert("실시간 공유가 연결되지 않았어요.\n\n" + (st.detail || "네트워크 상태를 확인해 주세요.") + "\n\n연결될 때까지 퀴즈 발사·화면 방송이 다른 사람에게 전달되지 않습니다."); }}
+      title={err ? st.detail : ok ? "실시간 공유 연결됨 — 발사·방송이 즉시 전달돼요" : "공유 서버에 연결하는 중…"}
+      className={`shrink-0 px-2 py-1 rounded-lg text-[10.5px] font-bold whitespace-nowrap ${ok ? "bg-emerald-50 text-emerald-600" : err ? "bg-rose-50 text-rose-600 animate-pulse" : "bg-amber-50 text-amber-600"}`}>
+      {ok ? "🟢 실시간" : err ? "🔴 공유 안 됨" : "🟡 연결 중"}
+    </button>
+  );
+}
+
+/* ============================================================
    MAIN APP
    ============================================================ */
 export default function App() {
@@ -2672,8 +2720,9 @@ export default function App() {
   useEffect(() => {
     if (!me) return;
     const s = me.session;
-    if (tab === "home") { loadRoster(s); const id = setInterval(() => loadRoster(s), 10000); return () => clearInterval(id); }
-    if (tab === "mailbox") { loadMail(s); const id = setInterval(() => loadMail(s), 10000); return () => clearInterval(id); }
+    // 실시간 구독 — 새 참여자·새 의견이 들어오는 즉시 화면에 반영
+    if (tab === "home") return sSub(`roster_${s}`, (r) => { if (Array.isArray(r)) setRoster(r); });
+    if (tab === "mailbox") return sSub(`mailbox_${s}`, (r) => { if (Array.isArray(r)) setMail(r); });
   }, [tab, me]);
 
   // 별명별 4자리 비번: 처음 쓰는 별명이면 등록, 이미 있으면 비번이 맞아야 입장
@@ -2689,10 +2738,12 @@ export default function App() {
     const uid = "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const entry = { uid, school: school.trim() || "○○학교", nick: nickName, session: s, ts: Date.now() };
     await sSet("me", entry, false);
+    // 같은 별명의 예전 기록(재입장)은 명단에서 정리하고, 새 항목은 arrayUnion으로 안전하게 추가
     const cur = (await sGet(`roster_${s}`, true)) || [];
-    const next = [...cur.filter((p) => p.uid !== uid), { uid, school: entry.school, nick: entry.nick, ts: entry.ts }];
-    await sSet(`roster_${s}`, next, true);
-    setRoster(next);
+    const clean = Array.isArray(cur) ? cur.filter((p) => p && p.nick !== nickName) : [];
+    if (Array.isArray(cur) && clean.length !== cur.length) await sSet(`roster_${s}`, clean, true);
+    await sPush(`roster_${s}`, { uid, school: entry.school, nick: entry.nick, ts: entry.ts });
+    setRoster([...clean, { uid, school: entry.school, nick: entry.nick, ts: entry.ts }]);
     setMe(entry);
     return null;
   };
@@ -2740,6 +2791,7 @@ export default function App() {
             </div>
             <span className="text-slate-400 font-mono">{readNodes.size}/{TOTAL_NODES}</span>
           </div>
+          <ShareStatus />
           <div className="px-2.5 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 text-[11px] font-bold truncate max-w-[120px]">{me.nick}</div>
           <button onClick={() => setTab("admin")} title="운영자 페이지"
             className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${tab === "admin" ? "bg-indigo-950 text-amber-400" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
@@ -3019,10 +3071,9 @@ function MailboxView({ me, mail, setMail, onRefresh, openTerm }) {
   const submit = async () => {
     const t = text.trim();
     if (!t) return;
-    const cur = (await sGet(`mailbox_${me.session}`, true)) || [];
-    const next = [...cur, { uid: me.uid, text: t, ts: Date.now() }];
-    await sSet(`mailbox_${me.session}`, next, true);
-    setMail(next); setText(""); setSent(true); setTimeout(() => setSent(false), 2000);
+    const entry = { uid: me.uid, text: t, ts: Date.now() };
+    await sPush(`mailbox_${me.session}`, entry); // arrayUnion — 동시에 제출해도 서로 안 지워짐
+    setMail([...mail, entry]); setText(""); setSent(true); setTimeout(() => setSent(false), 2000);
   };
 
   return (
@@ -3579,12 +3630,12 @@ function ShareView({ me, adminOk }) {
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  const load = async () => {
-    const g = await sGet(`gallery_${s}`, true); setItems(Array.isArray(g) ? g : []);
-    const st = await sGet(`settings_${s}`, true); if (st && typeof st.shareOn === "boolean") setShareOn(st.shareOn);
-    setLoaded(true);
-  };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [s]);
+  // 실시간 구독 — 다른 선생님이 올리는 작품이 새로고침 없이 곧바로 보입니다
+  useEffect(() => {
+    const unsub = sSub(`gallery_${s}`, (g) => { setItems(Array.isArray(g) ? g : []); setLoaded(true); });
+    (async () => { const st = await sGet(`settings_${s}`, true); if (st && typeof st.shareOn === "boolean") setShareOn(st.shareOn); })();
+    return unsub;
+  }, [s]);
 
   const normUrl = (u) => (u && !/^https?:\/\//i.test(u) ? "https://" + u : u);
   const post = async () => {
@@ -3702,13 +3753,8 @@ function LiveQuizOverlay({ me }) {
   const [etcText, setEtcText] = useState("");
   const [liveAns, setLiveAns] = useState([]);      // liveShow 퀴즈: 진행 중 실시간 응답 목록
 
-  useEffect(() => {
-    let on = true;
-    const tick = async () => { try { const q = await sGet(`qz_live_${s}`, true); if (on) setLive(q && q.id ? q : null); } catch {} };
-    tick();
-    const id = setInterval(tick, 5000);
-    return () => { on = false; clearInterval(id); };
-  }, [s]);
+  // 실시간 구독 — 강사가 발사하는 순간 곧바로 팝업이 뜹니다
+  useEffect(() => sSub(`qz_live_${s}`, (q) => setLive(q && q.id ? q : null)), [s]);
 
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(id); }, []);
 
@@ -3739,11 +3785,7 @@ function LiveQuizOverlay({ me }) {
   // liveShow 퀴즈: 진행 중에도 응답 내용을 실시간으로 모두에게 공개 (이름은 익명)
   useEffect(() => {
     if (!live || live.phase !== "live" || !live.liveShow) { setLiveAns([]); return; }
-    let on = true;
-    const tick = async () => { try { const a = (await sGet(`qz_ans_${s}_${live.id}`, true)) || []; if (on) setLiveAns(Array.isArray(a) ? a : []); } catch {} };
-    tick();
-    const id = setInterval(tick, 2500);
-    return () => { on = false; clearInterval(id); };
+    return sSub(`qz_ans_${s}_${live.id}`, (a) => setLiveAns(Array.isArray(a) ? a : []));
   }, [live && live.id, live && live.phase, s]); // eslint-disable-line
 
   if (!STORAGE_OK || !live || hidden === live.id) return null;
@@ -3761,11 +3803,8 @@ function LiveQuizOverlay({ me }) {
     if (live.etc && oi === live.o.length - 1 && !text) { setEtcOpen(true); return; }
     setMyPick(oi); setEtcOpen(false);
     try {
-      const key = `qz_ans_${s}_${live.id}`;
-      const cur = (await sGet(key, true)) || [];
-      const arr = Array.isArray(cur) ? cur : [];
-      if (!arr.some((a) => a.uid === me.uid))
-        await sSet(key, [...arr, { uid: me.uid, nick: me.nick, school: me.school, choice: oi, text: text.slice(0, 200), ts: Date.now() }], true);
+      // arrayUnion 기반 sPush — 여러 명이 동시에 제출해도 응답이 유실되지 않아요
+      await sPush(`qz_ans_${s}_${live.id}`, { uid: me.uid, nick: me.nick, school: me.school, choice: oi, text: text.slice(0, 200), ts: Date.now() });
     } catch {}
   };
 
@@ -3970,20 +4009,11 @@ function ScoreBoard({ me }) {
   const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(true);
 
-  useEffect(() => {
-    let on = true;
-    const tick = async () => {
-      try {
-        const sc = (await sGet(`qz_scores_${s}`, true)) || {};
-        if (!on) return;
-        const r = Object.entries(sc).map(([uid, v]: [string, any]) => ({ uid, ...(v || {}) })).sort((a, b) => (b.pts || 0) - (a.pts || 0));
-        setRows(r);
-      } catch {}
-    };
-    tick();
-    const id = setInterval(tick, 5000);
-    return () => { on = false; clearInterval(id); };
-  }, [s]);
+  // 실시간 구독 — 채점되는 순간 점수판이 즉시 갱신됩니다
+  useEffect(() => sSub(`qz_scores_${s}`, (sc) => {
+    const obj = sc && typeof sc === "object" ? sc : {};
+    setRows(Object.entries(obj).map(([uid, v]: [string, any]) => ({ uid, ...(v || {}) })).sort((a, b) => (b.pts || 0) - (a.pts || 0)));
+  }), [s]);
 
   if (!STORAGE_OK || rows.length === 0) return null;
 
@@ -4036,22 +4066,13 @@ function LiveQuizPanel({ s, roster, flash }) {
   const [cq, setCq] = useState({ q: "", o: ["", "", "", ""], a: 0, explain: "" });
   const closingRef = useRef(false);
 
-  useEffect(() => { (async () => { const sc = (await sGet(`qz_scores_${s}`, true)) || {}; setScores(sc && typeof sc === "object" ? sc : {}); })(); }, [s]);
-
+  // 실시간 구독 — 점수판·현재 문제·응답이 바뀌는 즉시 반영
+  useEffect(() => sSub(`qz_scores_${s}`, (sc) => setScores(sc && typeof sc === "object" ? sc : {})), [s]);
+  useEffect(() => sSub(`qz_live_${s}`, (q) => setLive(q && q.id ? q : null)), [s]);
   useEffect(() => {
-    let on = true;
-    const tick = async () => {
-      try {
-        const q = await sGet(`qz_live_${s}`, true);
-        if (!on) return;
-        setLive(q && q.id ? q : null);
-        if (q && q.id) { const a = (await sGet(`qz_ans_${s}_${q.id}`, true)) || []; if (on) setAnswers(Array.isArray(a) ? a : []); }
-      } catch {}
-    };
-    tick();
-    const id = setInterval(tick, 3000);
-    return () => { on = false; clearInterval(id); };
-  }, [s]);
+    if (!live || !live.id) { setAnswers([]); return; }
+    return sSub(`qz_ans_${s}_${live.id}`, (a) => setAnswers(Array.isArray(a) ? a : []));
+  }, [live && live.id, s]); // eslint-disable-line
 
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(id); }, []);
 
@@ -4236,23 +4257,12 @@ function QuickQuizFab({ me }) {
   const closingRef = useRef(false);
   const flash = (t) => { setToast(t); setTimeout(() => setToast(""), 1800); };
 
+  // 실시간 구독 — 현재 문제·응답이 바뀌는 즉시 리모컨에 반영
+  useEffect(() => sSub(`qz_live_${s}`, (q) => setLive(q && q.id ? q : null)), [s]);
   useEffect(() => {
-    let on = true;
-    const tick = async () => {
-      try {
-        const q = await sGet(`qz_live_${s}`, true);
-        if (!on) return;
-        setLive(q && q.id ? q : null);
-        if (q && q.id && q.phase === "live") {
-          const a = (await sGet(`qz_ans_${s}_${q.id}`, true)) || [];
-          if (on) setAnswers(Array.isArray(a) ? a : []);
-        }
-      } catch {}
-    };
-    tick();
-    const id = setInterval(tick, 3000);
-    return () => { on = false; clearInterval(id); };
-  }, [s]);
+    if (!live || !live.id || live.phase !== "live") return;
+    return sSub(`qz_ans_${s}_${live.id}`, (a) => setAnswers(Array.isArray(a) ? a : []));
+  }, [live && live.id, live && live.phase, s]); // eslint-disable-line
 
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(id); }, []);
 
@@ -4363,6 +4373,8 @@ function QuickQuizFab({ me }) {
    ============================================================ */
 function CastControl({ s, me, tab, activeTerm }) {
   const [on, setOn] = useState(false);
+  const [viewers, setViewers] = useState({});
+  const [now, setNow] = useState(Date.now());
   const lastTabRef = useRef("home");
   useEffect(() => { if (tab !== "admin") lastTabRef.current = tab; }, [tab]); // 운영자 탭은 참여자에게 안 보이니 마지막 일반 탭 유지
 
@@ -4374,37 +4386,45 @@ function CastControl({ s, me, tab, activeTerm }) {
     return () => clearInterval(id);
   }, [on, tab, activeTerm, s]); // eslint-disable-line
 
+  // 방송 중 시청자 수 — 참여자들이 남기는 심장박동(cast_seen)을 실시간 집계
+  useEffect(() => {
+    if (!on) { setViewers({}); return; }
+    return sSub(`cast_seen_${s}`, (m) => setViewers(m && typeof m === "object" ? m : {}));
+  }, [on, s]);
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 10000); return () => clearInterval(id); }, []);
+  const viewerCount = Object.values(viewers || {}).filter((ts: any) => now - Number(ts || 0) < 35000).length;
+
   const stop = async () => { setOn(false); try { await sSet(`cast_${s}`, { on: false, ts: Date.now() }, true); } catch {} };
 
   if (!STORAGE_OK) return null;
   return (
     <button onClick={on ? stop : () => setOn(true)} style={{ zIndex: 80 }} title={on ? "방송 끄기" : "내가 보는 화면을 참여자들이 따라오게 방송"}
       className={`fixed left-4 bottom-[84px] px-3.5 py-2 rounded-full shadow-2xl text-[12px] font-bold flex items-center gap-1.5 transition-colors ${on ? "bg-rose-500 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
-      <span className={on ? "animate-pulse" : ""}>📡</span> {on ? "방송 중 · 끄기" : "화면 방송"}
+      <span className={on ? "animate-pulse" : ""}>📡</span> {on ? `🔴 ${viewerCount}명 실시간 송출 · 끄기` : "화면 방송"}
     </button>
   );
 }
 
 function FollowCast({ me, setTab, setActiveTerm }) {
   const s = me.session;
-  const [cast, setCast] = useState(null);
+  const [raw, setRaw] = useState(null);      // 마지막으로 받은 방송 신호
+  const [now, setNow] = useState(Date.now()); // 신호가 오래됐는지(강사 이탈) 판단용
   const [follow, setFollow] = useState(true);
   const appliedRef = useRef({ tab: null, term: null });
 
+  // 실시간 구독 — 강사가 방송을 켜거나 페이지를 넘기는 즉시 반영
+  useEffect(() => sSub(`cast_${s}`, setRaw), [s]);
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 5000); return () => clearInterval(id); }, []);
+  const cast = raw && raw.on && now - (raw.ts || 0) < 30000 ? raw : null;
+
+  // 방송 시청 중임을 강사에게 알리는 심장박동 (시청자 수 집계용)
   useEffect(() => {
-    let on = true;
-    const tick = async () => {
-      try {
-        const c = await sGet(`cast_${s}`, true);
-        if (!on) return;
-        const active = c && c.on && Date.now() - (c.ts || 0) < 30000;
-        setCast(active ? c : null);
-      } catch {}
-    };
-    tick();
-    const id = setInterval(tick, 3000);
-    return () => { on = false; clearInterval(id); };
-  }, [s]);
+    if (!cast) return;
+    const beat = () => { sMerge(`cast_seen_${s}`, { [me.uid]: Date.now() }).catch(() => {}); };
+    beat();
+    const id = setInterval(beat, 12000);
+    return () => clearInterval(id);
+  }, [!!cast, s, me.uid]); // eslint-disable-line
 
   // 강사가 '바꾼 것'만 따라감 — 참여자가 스스로 이동한 건 강사가 다음으로 넘길 때까지 존중
   useEffect(() => {
@@ -4436,24 +4456,15 @@ function FollowCast({ me, setTab, setActiveTerm }) {
    ============================================================ */
 function PresentOverlay({ me, adminOk }) {
   const s = me.session;
-  const [pr, setPr] = useState(null);
+  const [raw, setRaw] = useState(null);       // 마지막으로 받은 발표 신호
+  const [now, setNow] = useState(Date.now()); // 신호가 오래됐는지(발표자 이탈) 판단용
   const [min, setMin] = useState(false);
   const seenRef = useRef(null);
 
-  useEffect(() => {
-    let on = true;
-    const tick = async () => {
-      try {
-        const p = await sGet(`present_${s}`, true);
-        if (!on) return;
-        const active = p && p.on && p.url && Date.now() - (p.ts || 0) < 45000;
-        setPr(active ? p : null);
-      } catch {}
-    };
-    tick();
-    const id = setInterval(tick, 4000);
-    return () => { on = false; clearInterval(id); };
-  }, [s]);
+  // 실시간 구독 — '모두에게 발표'를 누르는 즉시 모든 화면에 뜹니다
+  useEffect(() => sSub(`present_${s}`, setRaw), [s]);
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 5000); return () => clearInterval(id); }, []);
+  const pr = raw && raw.on && raw.url && now - (raw.ts || 0) < 45000 ? raw : null;
 
   // 새 발표가 시작되면 접어둔 상태 해제
   useEffect(() => { if (pr && pr.pid !== seenRef.current) { seenRef.current = pr.pid; setMin(false); } }, [pr]);
@@ -4469,7 +4480,7 @@ function PresentOverlay({ me, adminOk }) {
 
   if (!STORAGE_OK || !pr) return null;
 
-  const end = async () => { try { await sSet(`present_${s}`, { on: false, ts: Date.now() }, true); } catch {} setPr(null); };
+  const end = async () => { try { await sSet(`present_${s}`, { on: false, ts: Date.now() }, true); } catch {} setRaw(null); };
 
   if (min)
     return (
@@ -4533,7 +4544,15 @@ function AdminView({ me, setTab, onAuthed, preAuthed }) {
     const st = (await sGet(`settings_${s}`, true)) || {};
     setStSchool(st.school || "서울미술고등학교"); setStSection(st.section || ""); setStNotice(st.notice || ""); setStShareOn(st.shareOn !== false);
   };
-  useEffect(() => { if (authed) loadData(); }, [authed]);
+  useEffect(() => {
+    if (!authed) return;
+    loadData();
+    // 실시간 구독 — 새 참여자·의견·공유 작품이 운영자 화면에 즉시 반영
+    const u1 = sSub(`roster_${s}`, (r) => setRoster(Array.isArray(r) ? r : []));
+    const u2 = sSub(`mailbox_${s}`, (m) => setMail(Array.isArray(m) ? m : []));
+    const u3 = sSub(`gallery_${s}`, (g) => setGallery(Array.isArray(g) ? g : []));
+    return () => { u1(); u2(); u3(); };
+  }, [authed, s]); // eslint-disable-line
   const flash = (t) => { setMsg(t); setTimeout(() => setMsg(""), 2000); };
 
   const setPassword = async () => {

@@ -128,7 +128,7 @@ export default function ChatWidget() {
     try {
       localStorage.removeItem("vc:me");
       localStorage.removeItem("vc:chat_seen");
-      sessionStorage.removeItem("vc_pin_ok"); // 로그아웃하면 숫자 4자리 비밀번호부터 다시 입력
+      sessionStorage.removeItem("vc_admin_ok"); // 로그아웃하면 운영자 인증도 해제 (App.tsx와 같은 키)
     } catch {}
     window.location.reload();
   };
