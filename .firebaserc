@@ -1,14 +1,5 @@
 {
   "projects": {
     "default": "vibecodingclass-6a01c"
-  },
-  "targets": {
-    "vibecodingclass-6a01c": {
-      "hosting": {
-        "vibecoding103": [
-          "vibecoding103"
-        ]
-      }
-    }
   }
 }
