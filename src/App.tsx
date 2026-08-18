@@ -1008,21 +1008,29 @@ const MASTER_PW = "zz007031"; // 운영자(황미란 선생님) 마스터 비밀
 const LIVEQ_CATS = { smalltalk: "☕ 스몰토크", ai: "🤖 AI 상식", news: "📰 AI 뉴스", custom: "✏️ 자작 퀴즈" };
 
 const LIVEQ_BANK = [
-  // ── ☕ 스몰토크 (귀여운 잡학 워밍업) ──
-  { cat: "smalltalk", q: "☕ 다음 중 카페인이 '가장 많은' 음료는?", o: ["아메리카노 한 잔", "콜드브루 한 잔", "녹차 한 잔", "콜라 한 캔"], a: 1,
-    explain: "콜드브루는 오래 우려내 카페인이 가장 많은 편이에요. 오늘도 콜드브루로 버티는 중이라면… 리스펙!" },
-  { cat: "smalltalk", q: "🎨 색료의 삼원색이 '아닌' 것은?", o: ["마젠타", "노랑", "시안", "초록"], a: 3,
-    explain: "색료의 삼원색은 마젠타·노랑·시안! 초록은 혼합으로 만듭니다. 미술 선생님들껜 껌이었죠? 😎" },
-  { cat: "smalltalk", q: "🍜 봉지라면을 가장 맛있게 끓이는 물의 양은? (제조사 공식 기준)", o: ["350ml", "450ml", "550ml", "750ml"], a: 2,
-    explain: "공식 레시피는 550ml! 계량컵 없이 감으로 끓여도 맛있긴 하지만요. 🍳" },
-  { cat: "smalltalk", q: "😴 성인의 권장 수면 시간은?", o: ["4~5시간", "5~6시간", "7~9시간", "10시간 이상"], a: 2,
-    explain: "7~9시간! …이라고 쓰고 '방학 때 몰아서 자기'라고 읽습니다." },
-  { cat: "smalltalk", q: "🧠 사람의 뇌가 소비하는 에너지는 몸 전체의 약 몇 %일까요?", o: ["약 2%", "약 5%", "약 20%", "약 50%"], a: 2,
-    explain: "무게는 몸의 2%뿐인데 에너지는 약 20%를 씁니다. 연수 들으며 머리 쓰는 지금, 간식이 필요한 과학적 이유! 🍫" },
-  { cat: "smalltalk", q: "🇰🇷 세종대왕이 훈민정음을 '반포'한 해는?", o: ["1443년", "1446년", "1450년", "1392년"], a: 1,
-    explain: "창제는 1443년, 반포는 1446년! 헷갈리셨다면 지극히 정상입니다." },
-  { cat: "smalltalk", q: "🐙 문어의 심장은 몇 개일까요?", o: ["1개", "2개", "3개", "8개"], a: 2,
-    explain: "문어는 심장이 3개! 지금 1등을 노리는 선생님의 심장도 3개처럼 뛰고 있을 거예요." },
+  // ── ☕ 스몰토크 (2026년 2학기 개학일 · 오늘 연수 오신 선생님들 안부 + 유머) ──
+  { cat: "smalltalk", q: "🌅 오늘, 2026년 2학기 개학일 아침! 알람이 울렸을 때 대한민국 선생님들의 표준 반응은?", o: ["\"벌써…?\"", "\"아직 방학이잖아…\"", "\"제발 꿈이길\"", "모두 정답"], a: 3,
+    explain: "네, 모두 정답입니다 😂 그 마음을 안고 개학 첫날 연수까지 와 주신 것만으로 이미 대단하십니다. 박수 한번 드려요 👏" },
+  { cat: "smalltalk", q: "📖 '방학 때 하려던 일을 전부 끝냈다'는 교사의 비율은 몇 %일까요?", o: ["약 80%", "약 50%", "약 20%", "그런 분은 전설 속에만 존재"], a: 3,
+    explain: "통계청도 조사를 포기한 영역입니다 😌 못 끝낸 계획은 겨울방학의 나에게 정중히 이월합시다. 방학 잘 보내셨지요?" },
+  { cat: "smalltalk", q: "🌾 개학하자마자 '더위 끝!'을 알린다는 절기, '모기도 입이 삐뚤어진다'는 그날은?", o: ["입추", "처서", "백로", "상강"], a: 1,
+    explain: "처서(8월 23일 무렵)! 개학하고 딱 며칠만 버티면 '처서 매직'이 옵니다. 오늘 더위도 곧 끝나요 🍃" },
+  { cat: "smalltalk", q: "⏰ 오늘 아침 '5분만 더…' 하고 스누즈 버튼을 누르면 실제로는?", o: ["더 개운하게 일어난다", "오히려 더 피곤해진다", "아무 영향 없다", "기억력이 좋아진다"], a: 1,
+    explain: "수면이 잘게 쪼개져 오히려 더 피곤해진다는 게 연구 결과예요. 오늘 아침 몇 번 누르셨는지는… 묻지 않겠습니다 😌" },
+  { cat: "smalltalk", q: "😴 내일부터라도 '개학 증후군'을 이기는 가장 과학적인 방법은?", o: ["밤샘으로 리듬 리셋", "기상 시간을 조금씩 되돌리기", "커피 3잔 연속 흡입", "정신력으로 버티기"], a: 1,
+    explain: "수면 전문가들의 공통 처방은 '미리 조금씩'. …오늘은 이미 늦었으니 커피와 정신력으로 갑니다 ☕ 다들 컨디션은 좀 어떠세요?" },
+  { cat: "smalltalk", q: "☕ 개학한 교무실의 연료! 대한민국 성인 1인당 연간 커피 소비량은?", o: ["약 150잔", "약 260잔", "약 400잔", "약 550잔"], a: 2,
+    explain: "약 400잔 — 세계 평균의 두 배가 넘습니다. 오늘 교무실 커피포트가 유난히 바빴다면, 지극히 정상입니다." },
+  { cat: "smalltalk", q: "🎤 오랜만에 수업하는 오늘, 선생님 목을 지키는 가장 좋은 방법은?", o: ["물 자주 마시기", "작게 속삭여 말하기", "사탕 계속 먹기", "헛기침으로 풀기"], a: 0,
+    explain: "속삭이면 오히려 성대에 더 무리가 가요! 정답은 수분 보충. 방학 동안 쉬었던 목, 2학기에도 소중히 다뤄 주세요." },
+  { cat: "smalltalk", q: "🎒 내일 아이들을 만나면, 교육심리 연구들이 '가장 먼저 하라'고 권하는 것은?", o: ["방학 숙제 검사", "반갑게 이름 불러 주기", "2학기 시험 일정 공지", "자리 재배치"], a: 1,
+    explain: "관계 회복이 먼저! 숙제 검사는 모레도 할 수 있으니까요. 오늘 이 연수도 서로 반가움으로 시작해요 😊" },
+  { cat: "smalltalk", q: "🍫 개학 주간에 유난히 단 게 당기는 과학적인 이유는?", o: ["스트레스 호르몬이 당을 부른다", "혀가 예민해져서", "순전히 기분 탓", "카페인 부족 신호"], a: 0,
+    explain: "코르티솔이 빠른 에너지원인 당을 찾게 만들어요. 오늘 초콜릿이 당기셨다면 그건 과학입니다. 당당하게 드세요 🍫" },
+  { cat: "smalltalk", q: "📅 오늘부터 겨울방학까지, 남은 등교일은 대략 며칠일까요?", o: ["약 50일", "약 70일", "약 90일", "약 130일"], a: 2,
+    explain: "학교마다 다르지만 대략 90일 안팎! 생각보다 짧지요? 오늘 배우는 바이브 코딩과 함께라면 더 금방 갑니다 🚀" },
+  { cat: "smalltalk", q: "🧑‍🏫 2학기에 숨어 있는 '선생님의 날', 유네스코가 정한 세계 교사의 날은?", o: ["9월 1일", "10월 5일", "11월 11일", "12월 25일"], a: 1,
+    explain: "10월 5일! 5월 15일 말고도 축하받을 날이 하루 더 있습니다. 달력에 미리 표시해 두세요 🎉" },
   // ── 🤖 AI 상식 (오늘 배운 내용 복습 겸) ──
   { cat: "ai", q: "'바이브 코딩'이라는 말을 처음 만든 사람은?", o: ["샘 올트먼", "안드레이 카파시", "일론 머스크", "순다르 피차이"], a: 1,
     explain: "2025년 2월 카파시의 SNS 글에서 시작됐어요. 오픈AI 공동창립자이자 전 테슬라 AI 총괄입니다." },
@@ -2626,6 +2634,9 @@ export default function App() {
   const [readNodes, setReadNodes] = useState(() => new Set());
   const [roster, setRoster] = useState([]);
   const [mail, setMail] = useState([]);
+  // 운영자 인증 여부 — 인증하면 어느 탭에서든 플로팅 퀴즈 리모컨 사용 가능 (새로고침해도 유지)
+  const [adminOk, setAdminOk] = useState(() => { try { return sessionStorage.getItem("vc_admin_ok") === "1"; } catch { return false; } });
+  const grantAdmin = () => { setAdminOk(true); try { sessionStorage.setItem("vc_admin_ok", "1"); } catch {} };
 
   const openTerm = (k) => setActiveTerm(k);
   const markNode = (key) => setReadNodes((prev) => { if (prev.has(key)) return prev; const n = new Set(prev); n.add(key); return n; });
@@ -2713,9 +2724,9 @@ export default function App() {
         {tab === "glossary" && <GlossaryView q={glossQ} setQ={setGlossQ} openTerm={openTerm} />}
         {tab === "kit" && (<><KitStarter /><ScreenGuides /><IdeKit openTerm={openTerm} /></>)}
         {tab === "mailbox" && <MailboxView me={me} mail={mail} setMail={setMail} onRefresh={() => loadMail(me.session)} openTerm={openTerm} />}
-        {tab === "share" && <ShareView me={me} />}
+        {tab === "share" && <ShareView me={me} adminOk={adminOk} />}
         {tab === "quiz" && <QuizView openTerm={openTerm} />}
-        {tab === "admin" && <AdminView me={me} setTab={setTab} />}
+        {tab === "admin" && <AdminView me={me} setTab={setTab} onAuthed={grantAdmin} preAuthed={adminOk} />}
       </main>
 
       <footer className="max-w-5xl mx-auto px-4 pb-10 pt-2 text-center">
@@ -2727,6 +2738,16 @@ export default function App() {
 
       {activeTerm && <TermModal k={activeTerm} onClose={() => setActiveTerm(null)} openTerm={openTerm} />}
       <LiveQuizOverlay me={me} />
+      {/* 강사 전용 플로팅 퀴즈 리모컨 — 관리자 탭에서는 발사 패널이 있으니 숨김 */}
+      {adminOk && tab !== "admin" && <QuickQuizFab me={me} />}
+      {/* 화면 방송: 강사는 📡 토글, 참여자는 따라가기 바 */}
+      {adminOk
+        ? <CastControl s={me.session} me={me} tab={tab} activeTerm={activeTerm} />
+        : <FollowCast me={me} setTab={setTab} setActiveTerm={setActiveTerm} />}
+      {/* 공유 작품 발표 모드 — 발표가 시작되면 모두의 화면에 전체 화면으로 */}
+      <PresentOverlay me={me} adminOk={adminOk} />
+      {/* 세션 전체 채팅 — 모든 참여자 공용 */}
+      <ChatFab me={me} />
       <GlobalStyle />
     </div>
   );
@@ -3485,8 +3506,9 @@ function NewsCards() {
 /* ============================================================
    SHARE — 공유 마당: 연수생끼리 만든 사이트·수합 내용 공유
    ============================================================ */
-function ShareView({ me }) {
+function ShareView({ me, adminOk }) {
   const s = me.session;
+  const [presented, setPresented] = useState("");
   const [items, setItems] = useState([]);
   const [shareOn, setShareOn] = useState(true);
   const [title, setTitle] = useState("");
@@ -3516,6 +3538,13 @@ function ShareView({ me }) {
     const cur = (await sGet(`gallery_${s}`, true)) || [];
     const next = (Array.isArray(cur) ? cur : []).filter((x) => x.id !== id);
     await sSet(`gallery_${s}`, next, true); setItems(next);
+  };
+
+  // 내 작품(또는 운영자는 아무 작품이나)을 같은 세션 모든 화면에 전체 화면으로 발표
+  const present = async (it) => {
+    const p = { on: true, pid: Date.now().toString(36), id: it.id, uid: me.uid, owner: it.uid, url: it.url, title: it.title || "", nick: it.nick, ts: Date.now() };
+    await sSet(`present_${s}`, p, true);
+    setPresented(it.id); setTimeout(() => setPresented(""), 2500);
   };
 
   return (
@@ -3569,10 +3598,18 @@ function ShareView({ me }) {
                   <div className="text-[11px] text-slate-400 mt-1">{it.nick}{it.school ? " · " + it.school : ""}</div>
                   {it.note && <p className="text-[13px] text-slate-600 mt-2 leading-relaxed whitespace-pre-wrap">{it.note}</p>}
                   {it.url && (
-                    <a href={it.url} target="_blank" rel="noopener noreferrer"
-                      className="mt-3 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 font-bold text-[13px] hover:bg-emerald-100">
-                      사이트 열기 <ExternalLink size={13} />
-                    </a>
+                    <div className="mt-3 flex gap-2">
+                      <a href={it.url} target="_blank" rel="noopener noreferrer"
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 font-bold text-[13px] hover:bg-emerald-100">
+                        사이트 열기 <ExternalLink size={13} />
+                      </a>
+                      {STORAGE_OK && (it.uid === me.uid || adminOk) && (
+                        <button onClick={() => present(it)} title="같은 세션 모든 화면에 이 작품을 전체 화면으로 띄웁니다"
+                          className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-bold text-[13px] transition-colors ${presented === it.id ? "bg-emerald-600 text-white" : "bg-teal-600 hover:bg-teal-700 text-white"}`}>
+                          {presented === it.id ? "발표 시작! 🎉" : "📺 모두에게 발표"}
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}
@@ -3654,7 +3691,7 @@ function LiveQuizOverlay({ me }) {
   if (minz)
     return (
       <button onClick={() => setMinz(false)} style={{ zIndex: 90 }}
-        className="fixed bottom-4 right-4 px-4 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-bold text-[13px] shadow-2xl flex items-center gap-2 animate-bounce">
+        className="fixed bottom-[84px] right-4 px-4 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-bold text-[13px] shadow-2xl flex items-center gap-2 animate-bounce">
         <Zap size={16} className="text-amber-300" /> {isLive ? `깜짝 퀴즈 진행 중! ${left}초` : "퀴즈 결과 보기 🏆"}
       </button>
     );
@@ -3743,6 +3780,42 @@ function LiveQuizOverlay({ me }) {
 }
 
 /* ============================================================
+   LIVE QUIZ — 발사·채점 공용 로직 (관리 패널 + 플로팅 리모컨 공용)
+   ============================================================ */
+async function qzLaunch(s, item, dur) {
+  const id = "q" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const quiz = { id, cat: item.cat, q: item.q, o: item.o, a: item.a, explain: item.explain || "", startTs: Date.now(), dur, phase: "live" };
+  await sSet(`qz_ans_${s}_${id}`, [], true);
+  await sSet(`qz_live_${s}`, quiz, true);
+  return quiz;
+}
+
+// 마감: 채점(정답 100점 + 남은 시간 비례 보너스 최대 100점) → 누적 점수판 반영 → 정답 공개
+async function qzFinish(s) {
+  const cur = await sGet(`qz_live_${s}`, true);
+  if (!cur || cur.phase !== "live") return null;
+  const ans = (await sGet(`qz_ans_${s}_${cur.id}`, true)) || [];
+  const arr = Array.isArray(ans) ? ans : [];
+  const sc = (await sGet(`qz_scores_${s}`, true)) || {};
+  arr.forEach((an) => {
+    const row = sc[an.uid] || { nick: an.nick, school: an.school, pts: 0, correct: 0, played: 0 };
+    row.nick = an.nick; row.played = (row.played || 0) + 1;
+    if (an.choice === cur.a) {
+      const elapsed = Math.max(0, (an.ts - cur.startTs) / 1000);
+      an.gain = 100 + Math.round(Math.max(0, 1 - elapsed / cur.dur) * 100);
+      row.pts = (row.pts || 0) + an.gain;
+      row.correct = (row.correct || 0) + 1;
+    } else an.gain = 0;
+    sc[an.uid] = row;
+  });
+  await sSet(`qz_ans_${s}_${cur.id}`, arr, true);
+  await sSet(`qz_scores_${s}`, sc, true);
+  const done = { ...cur, phase: "revealed", endTs: Date.now() };
+  await sSet(`qz_live_${s}`, done, true);
+  return { done, arr, sc };
+}
+
+/* ============================================================
    LIVE QUIZ — 강사(운영자)용 발사 패널
    ============================================================ */
 function LiveQuizPanel({ s, roster, flash }) {
@@ -3778,38 +3851,16 @@ function LiveQuizPanel({ s, roster, flash }) {
   const left = live && live.phase === "live" ? Math.ceil((live.startTs + live.dur * 1000 - now) / 1000) : 0;
 
   const launch = async (item) => {
-    const id = "q" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-    const quiz = { id, cat: item.cat, q: item.q, o: item.o, a: item.a, explain: item.explain || "", startTs: Date.now(), dur, phase: "live" };
     closingRef.current = false;
-    await sSet(`qz_ans_${s}_${id}`, [], true);
-    await sSet(`qz_live_${s}`, quiz, true);
+    const quiz = await qzLaunch(s, item, dur);
     setLive(quiz); setAnswers([]);
     flash("퀴즈 발사! 🚀 참여자 화면에 곧 나타납니다.");
   };
 
-  // 마감: 채점(정답 100점 + 남은 시간 비례 보너스 최대 100점) → 누적 점수판 반영 → 정답 공개
   const finish = async () => {
-    const cur = await sGet(`qz_live_${s}`, true);
-    if (!cur || cur.phase !== "live") return;
-    const ans = (await sGet(`qz_ans_${s}_${cur.id}`, true)) || [];
-    const arr = Array.isArray(ans) ? ans : [];
-    const sc = (await sGet(`qz_scores_${s}`, true)) || {};
-    arr.forEach((an) => {
-      const row = sc[an.uid] || { nick: an.nick, school: an.school, pts: 0, correct: 0, played: 0 };
-      row.nick = an.nick; row.played = (row.played || 0) + 1;
-      if (an.choice === cur.a) {
-        const elapsed = Math.max(0, (an.ts - cur.startTs) / 1000);
-        an.gain = 100 + Math.round(Math.max(0, 1 - elapsed / cur.dur) * 100);
-        row.pts = (row.pts || 0) + an.gain;
-        row.correct = (row.correct || 0) + 1;
-      } else an.gain = 0;
-      sc[an.uid] = row;
-    });
-    await sSet(`qz_ans_${s}_${cur.id}`, arr, true);
-    await sSet(`qz_scores_${s}`, sc, true);
-    const done = { ...cur, phase: "revealed", endTs: Date.now() };
-    await sSet(`qz_live_${s}`, done, true);
-    setLive(done); setAnswers(arr); setScores(sc);
+    const r = await qzFinish(s);
+    if (!r) return;
+    setLive(r.done); setAnswers(r.arr); setScores(r.sc);
     flash("정답 공개! 점수가 합산됐어요. 🏆");
   };
 
@@ -3936,13 +3987,424 @@ function LiveQuizPanel({ s, roster, flash }) {
 }
 
 /* ============================================================
+   LIVE QUIZ — 강사용 플로팅 퀴즈 리모컨
+   - 운영자 인증 후 어느 페이지에서든 왼쪽 아래 ⚡ 버튼으로 껐다 켰다.
+   - 강의하며 다른 탭을 보다가도 바로바로 한 문제씩 발사.
+   - 발사한 문제는 ✓ 표시로 구분, 진행 중이면 마감 후 다음 문제 발사.
+   ============================================================ */
+function QuickQuizFab({ me }) {
+  const s = me.session;
+  const [open, setOpen] = useState(false);
+  const [live, setLive] = useState(null);
+  const [answers, setAnswers] = useState([]);
+  const [cat, setCat] = useState("smalltalk");
+  const [dur, setDur] = useState(20);
+  const [now, setNow] = useState(Date.now());
+  const [fired, setFired] = useState(() => new Set());
+  const [toast, setToast] = useState("");
+  const closingRef = useRef(false);
+  const flash = (t) => { setToast(t); setTimeout(() => setToast(""), 1800); };
+
+  useEffect(() => {
+    let on = true;
+    const tick = async () => {
+      try {
+        const q = await sGet(`qz_live_${s}`, true);
+        if (!on) return;
+        setLive(q && q.id ? q : null);
+        if (q && q.id && q.phase === "live") {
+          const a = (await sGet(`qz_ans_${s}_${q.id}`, true)) || [];
+          if (on) setAnswers(Array.isArray(a) ? a : []);
+        }
+      } catch {}
+    };
+    tick();
+    const id = setInterval(tick, 3000);
+    return () => { on = false; clearInterval(id); };
+  }, [s]);
+
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(id); }, []);
+
+  const isLive = live && live.phase === "live";
+  const left = isLive ? Math.max(0, Math.ceil((live.startTs + live.dur * 1000 - now) / 1000)) : 0;
+
+  const finish = async () => {
+    const r = await qzFinish(s);
+    if (!r) return;
+    setLive(r.done); setAnswers(r.arr);
+    flash("정답 공개! 점수 합산 완료 🏆");
+  };
+
+  // 제한시간이 끝나면 자동 마감 (늦게 도착하는 응답을 위해 2초 여유)
+  useEffect(() => {
+    if (!isLive) return;
+    if (now > live.startTs + live.dur * 1000 + 2000 && !closingRef.current) { closingRef.current = true; finish(); }
+  }, [now, live]); // eslint-disable-line
+
+  const launch = async (item, key) => {
+    if (isLive) await qzFinish(s); // 진행 중이던 문제는 먼저 채점·마감하고 다음 문제로
+    closingRef.current = false;
+    const quiz = await qzLaunch(s, item, dur);
+    setLive(quiz); setAnswers([]);
+    setFired((p) => { const n = new Set(p); n.add(key); return n; });
+    flash("발사! 🚀");
+  };
+  const takeDown = async () => { await sSet(`qz_live_${s}`, null, true); setLive(null); setAnswers([]); flash("퀴즈를 내렸어요."); };
+
+  const bank = LIVEQ_BANK.map((b, i) => ({ ...b, key: `${b.cat}-${i}` })).filter((b) => (cat === "all" ? true : b.cat === cat));
+
+  if (!STORAGE_OK) return null;
+
+  if (!open)
+    return (
+      <button onClick={() => setOpen(true)} title="퀴즈 리모컨 열기" style={{ zIndex: 80 }}
+        className="fixed bottom-4 left-4 w-14 h-14 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-2xl flex items-center justify-center transition-colors">
+        <Zap size={22} className="text-amber-300" />
+        {isLive && <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 rounded-full bg-rose-500 text-[11px] font-bold flex items-center justify-center animate-pulse">{left}</span>}
+      </button>
+    );
+
+  return (
+    <div style={{ zIndex: 80 }} className="fixed bottom-4 left-4 w-[min(92vw,340px)] rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden flex flex-col">
+      <div className="bg-gradient-to-r from-violet-600 to-fuchsia-600 px-4 py-3 text-white flex items-center gap-2">
+        <Zap size={16} className="text-amber-300 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <div className="font-extrabold text-[13.5px] leading-tight">퀴즈 리모컨</div>
+          <div className="text-[10.5px] text-fuchsia-100 truncate">세션 {s} · 누르면 바로 발사돼요</div>
+        </div>
+        <button onClick={() => setOpen(false)} title="접기" className="w-7 h-7 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center shrink-0"><X size={14} /></button>
+      </div>
+
+      {toast && <div className="px-4 py-1.5 bg-emerald-50 text-emerald-700 text-[11.5px] font-bold border-b border-emerald-100">{toast}</div>}
+
+      {live && (
+        <div className={`px-4 py-2.5 border-b ${isLive ? "bg-rose-50 border-rose-100" : "bg-violet-50 border-violet-100"}`}>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className={`text-[11px] font-bold ${isLive ? "text-rose-500" : "text-violet-500"}`}>
+              {isLive ? `🔴 진행 중 · ${left}초 · 응답 ${answers.length}명` : "✅ 정답 공개됨"}
+            </span>
+          </div>
+          <p className="text-[12px] font-bold text-slate-700 leading-snug line-clamp-2">{live.q}</p>
+          <div className="flex gap-1.5 mt-2">
+            {isLive && <button onClick={finish} className="px-2.5 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-[11px] font-bold">⏹ 마감 & 정답</button>}
+            <button onClick={takeDown} className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 text-[11px] font-bold hover:bg-slate-50">내리기</button>
+          </div>
+        </div>
+      )}
+
+      <div className="px-3 pt-2.5 pb-1.5 flex items-center gap-1 flex-wrap">
+        {[["smalltalk", "☕ 스몰토크"], ["ai", "🤖 AI"], ["news", "📰 뉴스"], ["all", "전체"]].map(([k, l]) => (
+          <button key={k} onClick={() => setCat(k)}
+            className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${cat === k ? "bg-violet-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>{l}</button>
+        ))}
+        <select value={dur} onChange={(e) => setDur(Number(e.target.value))} title="제한시간"
+          className="ml-auto text-[11px] font-bold text-slate-500 bg-slate-100 rounded-lg px-1.5 py-1 outline-none">
+          {[15, 20, 30, 45].map((d) => <option key={d} value={d}>{d}초</option>)}
+        </select>
+      </div>
+
+      <div className="max-h-[44vh] overflow-y-auto divide-y divide-slate-100">
+        {bank.map((b) => (
+          <div key={b.key} className={`flex items-center gap-2 px-3 py-2 ${fired.has(b.key) ? "opacity-50" : "hover:bg-slate-50"}`}>
+            <div className="min-w-0 flex-1">
+              <div className="text-[12px] font-bold text-slate-700 leading-snug line-clamp-2">
+                {fired.has(b.key) && <span className="text-emerald-500 mr-1">✓</span>}{b.q}
+              </div>
+            </div>
+            <button onClick={() => launch(b, b.key)}
+              className="shrink-0 w-9 h-9 rounded-lg bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center" title="이 문제 발사">
+              <Rocket size={14} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100 text-[10.5px] text-slate-400">✓ = 이번에 발사한 문제 · 진행 중 발사하면 이전 문제는 자동 마감돼요</div>
+    </div>
+  );
+}
+
+/* ============================================================
+   CAST — 강사 화면 방송 (강사가 보는 탭·용어 팝업을 참여자가 따라감)
+   - 강사: 📡 버튼으로 방송 켜기/끄기. 켜면 현재 페이지가 8초 심장박동과
+     함께 cast_{세션}에 기록됩니다.
+   - 참여자: 방송이 켜지면 하단에 안내 바가 뜨고, 강사가 페이지를 넘길
+     때마다 같은 페이지로 자동 이동(일시정지 가능).
+   ============================================================ */
+function CastControl({ s, me, tab, activeTerm }) {
+  const [on, setOn] = useState(false);
+  const lastTabRef = useRef("home");
+  useEffect(() => { if (tab !== "admin") lastTabRef.current = tab; }, [tab]); // 운영자 탭은 참여자에게 안 보이니 마지막 일반 탭 유지
+
+  useEffect(() => {
+    if (!on) return;
+    const payload = () => ({ on: true, tab: lastTabRef.current, term: activeTerm || null, nick: me.nick, ts: Date.now() });
+    sSet(`cast_${s}`, payload(), true);
+    const id = setInterval(() => sSet(`cast_${s}`, payload(), true), 8000);
+    return () => clearInterval(id);
+  }, [on, tab, activeTerm, s]); // eslint-disable-line
+
+  const stop = async () => { setOn(false); try { await sSet(`cast_${s}`, { on: false, ts: Date.now() }, true); } catch {} };
+
+  if (!STORAGE_OK) return null;
+  return (
+    <button onClick={on ? stop : () => setOn(true)} style={{ zIndex: 80 }} title={on ? "방송 끄기" : "내가 보는 화면을 참여자들이 따라오게 방송"}
+      className={`fixed left-4 bottom-[84px] px-3.5 py-2 rounded-full shadow-2xl text-[12px] font-bold flex items-center gap-1.5 transition-colors ${on ? "bg-rose-500 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+      <span className={on ? "animate-pulse" : ""}>📡</span> {on ? "방송 중 · 끄기" : "화면 방송"}
+    </button>
+  );
+}
+
+function FollowCast({ me, setTab, setActiveTerm }) {
+  const s = me.session;
+  const [cast, setCast] = useState(null);
+  const [follow, setFollow] = useState(true);
+  const appliedRef = useRef({ tab: null, term: null });
+
+  useEffect(() => {
+    let on = true;
+    const tick = async () => {
+      try {
+        const c = await sGet(`cast_${s}`, true);
+        if (!on) return;
+        const active = c && c.on && Date.now() - (c.ts || 0) < 30000;
+        setCast(active ? c : null);
+      } catch {}
+    };
+    tick();
+    const id = setInterval(tick, 3000);
+    return () => { on = false; clearInterval(id); };
+  }, [s]);
+
+  // 강사가 '바꾼 것'만 따라감 — 참여자가 스스로 이동한 건 강사가 다음으로 넘길 때까지 존중
+  useEffect(() => {
+    if (!cast || !follow) return;
+    const ap = appliedRef.current;
+    if (cast.tab && cast.tab !== ap.tab) { setTab(cast.tab); ap.tab = cast.tab; }
+    const term = cast.term || null;
+    if (term !== ap.term) { setActiveTerm(term); ap.term = term; }
+  }, [cast, follow]); // eslint-disable-line
+
+  if (!STORAGE_OK || !cast) return null;
+  return (
+    <div style={{ zIndex: 75 }} className="fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-950 text-white shadow-2xl text-[12px] font-bold whitespace-nowrap">
+      <span className="animate-pulse">📡</span>
+      {follow ? `${cast.nick || "강사"} 선생님 화면과 함께 보는 중` : "따라가기 일시정지됨"}
+      <button onClick={() => setFollow(!follow)}
+        className={`ml-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${follow ? "bg-white/15 hover:bg-white/25 text-indigo-100" : "bg-amber-500 hover:bg-amber-600 text-white"}`}>
+        {follow ? "일시정지" : "다시 따라가기"}
+      </button>
+    </div>
+  );
+}
+
+/* ============================================================
+   PRESENT — 공유 작품 발표 모드
+   - 공유 마당에서 '모두에게 발표'를 누르면 그 사이트가 같은 세션 모든
+     화면에 전체 화면(iframe)으로 실시간 표시됩니다.
+   - 발표자·운영자는 끝내기 가능, 참여자는 접어두기 가능.
+   ============================================================ */
+function PresentOverlay({ me, adminOk }) {
+  const s = me.session;
+  const [pr, setPr] = useState(null);
+  const [min, setMin] = useState(false);
+  const seenRef = useRef(null);
+
+  useEffect(() => {
+    let on = true;
+    const tick = async () => {
+      try {
+        const p = await sGet(`present_${s}`, true);
+        if (!on) return;
+        const active = p && p.on && p.url && Date.now() - (p.ts || 0) < 45000;
+        setPr(active ? p : null);
+      } catch {}
+    };
+    tick();
+    const id = setInterval(tick, 4000);
+    return () => { on = false; clearInterval(id); };
+  }, [s]);
+
+  // 새 발표가 시작되면 접어둔 상태 해제
+  useEffect(() => { if (pr && pr.pid !== seenRef.current) { seenRef.current = pr.pid; setMin(false); } }, [pr]);
+
+  const canEnd = pr && (pr.uid === me.uid || adminOk);
+
+  // 발표자(또는 운영자)가 접속해 있는 동안만 발표 유지 — 심장박동으로 갱신
+  useEffect(() => {
+    if (!pr || !canEnd) return;
+    const id = setInterval(() => { try { sSet(`present_${s}`, { ...pr, ts: Date.now() }, true); } catch {} }, 10000);
+    return () => clearInterval(id);
+  }, [pr && pr.pid, canEnd]); // eslint-disable-line
+
+  if (!STORAGE_OK || !pr) return null;
+
+  const end = async () => { try { await sSet(`present_${s}`, { on: false, ts: Date.now() }, true); } catch {} setPr(null); };
+
+  if (min)
+    return (
+      <button onClick={() => setMin(false)} style={{ zIndex: 70 }}
+        className="fixed bottom-4 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-full bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold text-[12.5px] shadow-2xl flex items-center gap-2 whitespace-nowrap">
+        📺 {pr.nick} 선생님 발표 진행 중 — 다시 열기
+      </button>
+    );
+
+  return (
+    <div style={{ zIndex: 70 }} className="fixed inset-0 bg-black/70 flex flex-col p-2 sm:p-4">
+      <div className="bg-white rounded-2xl flex-1 flex flex-col overflow-hidden w-full max-w-6xl mx-auto shadow-2xl">
+        <div className="bg-gradient-to-r from-teal-600 to-emerald-600 px-4 py-2.5 text-white flex items-center gap-2">
+          <span className="text-[16px]">📺</span>
+          <div className="min-w-0 flex-1">
+            <div className="font-extrabold text-[13.5px] leading-tight truncate">{pr.title || "작품 발표"}</div>
+            <div className="text-[10.5px] text-emerald-100 truncate">{pr.nick} 선생님의 바이브 코딩 작품 · 실시간 발표</div>
+          </div>
+          <a href={pr.url} target="_blank" rel="noopener noreferrer" title="새 탭에서 열기"
+            className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center shrink-0"><ExternalLink size={14} /></a>
+          {canEnd && (
+            <button onClick={end} className="px-3 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-[11.5px] font-bold shrink-0">발표 끝내기</button>
+          )}
+          <button onClick={() => setMin(true)} title="잠시 접어두기"
+            className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center shrink-0"><X size={15} /></button>
+        </div>
+        <iframe src={pr.url} title="작품 발표" className="flex-1 w-full border-0 bg-white" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" />
+        <div className="px-4 py-1.5 bg-slate-50 border-t border-slate-100 text-[10.5px] text-slate-400">
+          화면이 비어 보이면 해당 사이트가 화면 삽입을 막은 거예요 — 오른쪽 위 ↗ 버튼으로 새 탭에서 열어 주세요.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   CHAT — 세션 전체 채팅 (오른쪽 아래 💬 버튼)
+   - 같은 세션의 모든 선생님·강사가 함께 쓰는 실시간 채팅.
+   - 주소(URL)를 보내면 자동으로 클릭 가능한 링크가 됩니다.
+   - 저장 키: chat_{세션} (최근 200개 유지)
+   ============================================================ */
+function linkify(text) {
+  const re = /(https?:\/\/\S+|\b[\w.-]+\.(?:web\.app|netlify\.app|firebaseapp\.com|github\.io|vercel\.app|co\.kr|com|net|org|kr)(?:\/\S*)?)/gi;
+  const out = []; let last = 0, m, i = 0;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    const raw = m[0];
+    const href = /^https?:\/\//i.test(raw) ? raw : "https://" + raw;
+    out.push(<a key={i++} href={href} target="_blank" rel="noopener noreferrer" className="underline font-bold break-all hover:opacity-80">{raw}</a>);
+    last = re.lastIndex;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+
+function ChatFab({ me }) {
+  const s = me.session;
+  const [open, setOpen] = useState(false);
+  const [msgs, setMsgs] = useState([]);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const seenRef = useRef(Date.now());
+  const boxRef = useRef(null);
+  const openRef = useRef(false);
+  openRef.current = open;
+
+  useEffect(() => {
+    let on = true;
+    const tick = async () => {
+      try {
+        const c = await sGet(`chat_${s}`, true);
+        if (!on) return;
+        const arr = Array.isArray(c) ? c : [];
+        setMsgs(arr);
+        if (openRef.current && arr.length) seenRef.current = Math.max(seenRef.current, arr[arr.length - 1].ts || 0);
+      } catch {}
+    };
+    tick();
+    const id = setInterval(tick, 3500);
+    return () => { on = false; clearInterval(id); };
+  }, [s]);
+
+  // 열려 있으면 새 메시지 때 맨 아래로 스크롤
+  useEffect(() => {
+    if (open && boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight;
+    if (open && msgs.length) seenRef.current = Math.max(seenRef.current, msgs[msgs.length - 1].ts || 0);
+  }, [open, msgs]);
+
+  const unread = open ? 0 : msgs.filter((m) => (m.ts || 0) > seenRef.current && m.uid !== me.uid).length;
+
+  const send = async () => {
+    const t = text.trim();
+    if (!t || busy) return;
+    setBusy(true);
+    try {
+      const entry = { id: Date.now() + "-" + Math.random().toString(36).slice(2, 6), uid: me.uid, nick: me.nick, text: t.slice(0, 500), ts: Date.now() };
+      const cur = (await sGet(`chat_${s}`, true)) || [];
+      const next = [...(Array.isArray(cur) ? cur : []), entry].slice(-200);
+      await sSet(`chat_${s}`, next, true);
+      setMsgs(next); setText("");
+      seenRef.current = entry.ts;
+    } catch {}
+    setBusy(false);
+  };
+
+  if (!STORAGE_OK) return null;
+
+  if (!open)
+    return (
+      <button onClick={() => setOpen(true)} title="세션 채팅 열기" style={{ zIndex: 60 }}
+        className="fixed bottom-4 right-4 w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xl flex items-center justify-center transition-colors">
+        <MessageSquare size={22} />
+        {unread > 0 && <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 rounded-full bg-rose-500 text-[11px] font-bold flex items-center justify-center animate-pulse">{unread > 99 ? "99+" : unread}</span>}
+      </button>
+    );
+
+  return (
+    <div style={{ zIndex: 60 }} className="fixed bottom-4 right-4 w-[min(92vw,340px)] h-[min(70vh,480px)] rounded-2xl bg-white border border-slate-200 shadow-2xl flex flex-col overflow-hidden">
+      <div className="bg-gradient-to-r from-indigo-600 to-indigo-800 px-4 py-3 text-white flex items-center gap-2 shrink-0">
+        <MessageSquare size={16} className="shrink-0" />
+        <div className="min-w-0 flex-1">
+          <div className="font-extrabold text-[13.5px] leading-tight">세션 채팅</div>
+          <div className="text-[10.5px] text-indigo-200 truncate">세션 {s} · 같은 세션 선생님 모두에게 보여요</div>
+        </div>
+        <button onClick={() => setOpen(false)} title="접기" className="w-7 h-7 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center shrink-0"><X size={14} /></button>
+      </div>
+
+      <div ref={boxRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5 bg-slate-50">
+        {msgs.length === 0 ? (
+          <p className="text-[12px] text-slate-400 text-center pt-8 leading-relaxed">아직 메시지가 없어요.<br />첫 인사를 남겨 보세요! 👋</p>
+        ) : msgs.map((m) => {
+          const mine = m.uid === me.uid;
+          return (
+            <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
+              {!mine && <span className="text-[10.5px] font-bold text-slate-400 mb-0.5 px-1">{m.nick}</span>}
+              <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap break-words ${mine ? "bg-indigo-600 text-white rounded-br-md" : "bg-white border border-slate-200 text-slate-700 rounded-bl-md"}`}>
+                {linkify(m.text || "")}
+              </div>
+              <span className="text-[9.5px] text-slate-300 mt-0.5 px-1">{new Date(m.ts).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="p-2.5 bg-white border-t border-slate-100 flex items-center gap-2 shrink-0">
+        <input value={text} onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) send(); }}
+          placeholder="메시지 또는 주소 입력…"
+          className="flex-1 px-3 py-2 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none text-[13px]" />
+        <button onClick={send} disabled={busy || !text.trim()}
+          className="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center disabled:opacity-40 shrink-0" title="보내기">
+          <Send size={15} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
    ADMIN — 운영자(슈퍼관리자) 페이지 (비밀번호 보호)
    ============================================================ */
-function AdminView({ me, setTab }) {
+function AdminView({ me, setTab, onAuthed, preAuthed }) {
   const s = me.session;
   const [stored, setStored] = useState(undefined); // undefined=loading, null=none, string=set
   const [pwInput, setPwInput] = useState("");
-  const [authed, setAuthed] = useState(false);
+  const [authed, setAuthed] = useState(!!preAuthed); // 이번 브라우저 세션에서 이미 인증했으면 바로 입장
   const [showPw, setShowPw] = useState(false);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
@@ -3968,12 +4430,14 @@ function AdminView({ me, setTab }) {
     const p = pwInput.trim();
     if (p.length < 4) { setErr("4자 이상으로 정해 주세요."); return; }
     await sSet(`adminpw_${s}`, p, true); setStored(p); setAuthed(true); setErr(""); setPwInput("");
+    onAuthed && onAuthed();
     if (p === MASTER_PW) flash("환영합니다, 황미란 선생님! 🎨");
   };
   const enter = () => {
     const p = pwInput.trim();
     if (p === stored || p === MASTER_PW) {
       setAuthed(true); setErr(""); setPwInput("");
+      onAuthed && onAuthed();
       if (p === MASTER_PW) flash("환영합니다, 황미란 선생님! 🎨");
     } else setErr("비밀번호가 일치하지 않아요.");
   };
