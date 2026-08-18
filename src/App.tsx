@@ -4515,11 +4515,14 @@ function CastControl({ s, me, tab, activeTerm }) {
   const [viewers, setViewers] = useState({});
   const [now, setNow] = useState(Date.now());
   const lastTabRef = useRef("home");
+  const castIdRef = useRef(null); // 방송 회차 id — 참여자의 '종료'가 이번 방송에만 적용되게 구분
   useEffect(() => { if (tab !== "admin") lastTabRef.current = tab; }, [tab]); // 운영자 탭은 참여자에게 안 보이니 마지막 일반 탭 유지
+
+  const start = () => { castIdRef.current = "c" + Date.now().toString(36); setOn(true); };
 
   useEffect(() => {
     if (!on) return;
-    const payload = () => ({ on: true, tab: lastTabRef.current, term: activeTerm || null, detail: castDetail.cur, nick: me.nick, ts: Date.now() });
+    const payload = () => ({ on: true, castId: castIdRef.current, tab: lastTabRef.current, term: activeTerm || null, detail: castDetail.cur, nick: me.nick, ts: Date.now() });
     sSet(`cast_${s}`, payload(), true);
     const id = setInterval(() => sSet(`cast_${s}`, payload(), true), 8000);
     // 세부 화면(지도 말단·실습 단계)이 바뀌는 즉시 방송 신호 갱신
@@ -4539,7 +4542,7 @@ function CastControl({ s, me, tab, activeTerm }) {
 
   if (!STORAGE_OK) return null;
   return (
-    <button onClick={on ? stop : () => setOn(true)} style={{ zIndex: 80 }} title={on ? "방송 끄기" : "내가 보는 화면을 참여자들이 따라오게 방송"}
+    <button onClick={on ? stop : start} style={{ zIndex: 80 }} title={on ? "방송 끄기" : "내가 보는 화면을 참여자들이 따라오게 방송"}
       className={`fixed left-4 bottom-[84px] px-3.5 py-2 rounded-full shadow-2xl text-[12px] font-bold flex items-center gap-1.5 transition-colors ${on ? "bg-rose-500 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
       <span className={on ? "animate-pulse" : ""}>📡</span> {on ? `🔴 ${viewerCount}명 실시간 송출 · 끄기` : "화면 방송"}
     </button>
@@ -4551,46 +4554,71 @@ function FollowCast({ me, setTab, setActiveTerm }) {
   const [raw, setRaw] = useState(null);      // 마지막으로 받은 방송 신호
   const [now, setNow] = useState(Date.now()); // 신호가 오래됐는지(강사 이탈) 판단용
   const [follow, setFollow] = useState(true);
+  const [exitedId, setExitedId] = useState(null); // '종료'를 누른 방송 회차 — 그 방송이 끝날 때까지 다시 끌려가지 않음
   const appliedRef = useRef({ tab: null, term: null });
+  const seenCastRef = useRef(null);
 
   // 실시간 구독 — 강사가 방송을 켜거나 페이지를 넘기는 즉시 반영
   useEffect(() => sSub(`cast_${s}`, setRaw), [s]);
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 5000); return () => clearInterval(id); }, []);
   const cast = raw && raw.on && now - (raw.ts || 0) < 30000 ? raw : null;
+  const cid = cast ? cast.castId || "legacy" : null;
+
+  // 새 방송이 시작되면 종료·일시정지 상태를 초기화하고 처음부터 따라감
+  useEffect(() => {
+    if (cid && cid !== seenCastRef.current) { seenCastRef.current = cid; setExitedId(null); setFollow(true); }
+  }, [cid]);
+
+  const exited = !!cast && exitedId === cid;
+  const active = cast && !exited ? cast : null; // 종료한 방송은 따라가기·시청자 집계 모두 중단
 
   // 방송 시청 중임을 강사에게 알리는 심장박동 (시청자 수 집계용)
   useEffect(() => {
-    if (!cast) return;
+    if (!active) return;
     const beat = () => { sMerge(`cast_seen_${s}`, { [me.uid]: Date.now() }).catch(() => {}); };
     beat();
     const id = setInterval(beat, 12000);
     return () => clearInterval(id);
-  }, [!!cast, s, me.uid]); // eslint-disable-line
+  }, [!!active, s, me.uid]); // eslint-disable-line
 
   // 강사가 '바꾼 것'만 따라감 — 참여자가 스스로 이동한 건 강사가 다음으로 넘길 때까지 존중
   useEffect(() => {
-    if (!cast || !follow) return;
+    if (!active || !follow) return;
     const ap = appliedRef.current;
-    if (cast.tab && cast.tab !== ap.tab) { setTab(cast.tab); ap.tab = cast.tab; }
-    const term = cast.term || null;
+    if (active.tab && active.tab !== ap.tab) { setTab(active.tab); ap.tab = active.tab; }
+    const term = active.term || null;
     if (term !== ap.term) { setActiveTerm(term); ap.term = term; }
     // 탭 안쪽 세부 화면(학습지도 말단·실습 단계 등)도 바뀐 경우에만 전달
     // (탭이 바뀌면 새로 열린 화면이 마지막 세부 위치를 따라잡도록 탭도 비교에 포함)
-    const dj = (cast.tab || "") + "|" + JSON.stringify(cast.detail || {});
-    if (dj !== ap.detail) { castFollow.apply({ ...(cast.detail || {}), _tab: cast.tab }); ap.detail = dj; }
-  }, [cast, follow]); // eslint-disable-line
+    const dj = (active.tab || "") + "|" + JSON.stringify(active.detail || {});
+    if (dj !== ap.detail) { castFollow.apply({ ...(active.detail || {}), _tab: active.tab }); ap.detail = dj; }
+  }, [active, follow]); // eslint-disable-line
 
   // 방송이 끝나거나 따라가기를 멈추면 세부 상태 replay도 중단
-  useEffect(() => { if (!cast || !follow) castFollow.reset(); }, [!!cast, follow]); // eslint-disable-line
+  useEffect(() => { if (!active || !follow) castFollow.reset(); }, [!!active, follow]); // eslint-disable-line
 
   if (!STORAGE_OK || !cast) return null;
+
+  // 종료 후에는 작은 알림만 — 원하면 언제든 다시 따라갈 수 있어요
+  if (exited)
+    return (
+      <button onClick={() => { setExitedId(null); setFollow(true); }} style={{ zIndex: 75 }} title="강사 화면 따라가기를 다시 시작"
+        className="fixed bottom-4 left-4 px-3 py-2 rounded-full bg-white border border-slate-200 shadow-lg text-[11.5px] font-bold text-slate-500 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 flex items-center gap-1.5 transition-colors">
+        📡 방송 따라가기
+      </button>
+    );
+
   return (
-    <div style={{ zIndex: 75 }} className="fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-950 text-white shadow-2xl text-[12px] font-bold whitespace-nowrap">
-      <span className="animate-pulse">📡</span>
-      {follow ? `${cast.nick || "강사"} 선생님 화면과 함께 보는 중` : "따라가기 일시정지됨"}
-      <button onClick={() => setFollow(!follow)}
-        className={`ml-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${follow ? "bg-white/15 hover:bg-white/25 text-indigo-100" : "bg-amber-500 hover:bg-amber-600 text-white"}`}>
+    <div style={{ zIndex: 75 }} className="fixed bottom-4 left-1/2 -translate-x-1/2 max-w-[94vw] flex items-center gap-2 pl-4 pr-2 py-2 rounded-full bg-indigo-950 text-white shadow-2xl text-[12px] font-bold whitespace-nowrap">
+      <span className="animate-pulse shrink-0">📡</span>
+      <span className="truncate">{follow ? `${cast.nick || "강사"} 선생님 화면과 함께 보는 중` : "따라가기 일시정지됨"}</span>
+      <button onClick={() => setFollow(!follow)} title={follow ? "잠시 내 마음대로 둘러보기" : "다시 강사 화면을 따라가기"}
+        className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${follow ? "bg-white/15 hover:bg-white/25 text-indigo-100" : "bg-amber-500 hover:bg-amber-600 text-white"}`}>
         {follow ? "일시정지" : "다시 따라가기"}
+      </button>
+      <button onClick={() => { setExitedId(cid); castFollow.reset(); }} title="따라가기 종료 (왼쪽 아래 버튼으로 언제든 다시 켤 수 있어요)"
+        className="shrink-0 w-7 h-7 rounded-full bg-white/10 hover:bg-rose-500 flex items-center justify-center transition-colors" aria-label="따라가기 종료">
+        <X size={14} />
       </button>
     </div>
   );
@@ -4633,8 +4661,8 @@ function PresentOverlay({ me, adminOk }) {
   if (min)
     return (
       <button onClick={() => setMin(false)} style={{ zIndex: 70 }}
-        className="fixed bottom-4 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-full bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold text-[12.5px] shadow-2xl flex items-center gap-2 whitespace-nowrap">
-        📺 {pr.nick} 선생님 발표 진행 중 — 다시 열기
+        className="fixed bottom-[64px] left-1/2 -translate-x-1/2 max-w-[94vw] px-4 py-2.5 rounded-full bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold text-[12.5px] shadow-2xl flex items-center gap-2 whitespace-nowrap">
+        <span className="shrink-0">📺</span><span className="truncate">{pr.nick} 선생님 발표 진행 중 — 다시 열기</span>
       </button>
     );
 
