@@ -2659,16 +2659,25 @@ export default function App() {
     if (tab === "mailbox") { loadMail(s); const id = setInterval(() => loadMail(s), 10000); return () => clearInterval(id); }
   }, [tab, me]);
 
-  const join = async (school, nick, session) => {
+  // 별명별 4자리 비번: 처음 쓰는 별명이면 등록, 이미 있으면 비번이 맞아야 입장
+  // 성공하면 null, 실패하면 오류 메시지 문자열을 돌려줌
+  const join = async (school, nick, session, pin) => {
     const s = (session || "DEMO").toUpperCase().replace(/[^A-Z0-9]/g, "") || "DEMO";
+    const nickName = nick.trim() || "익명";
+    if (!/^\d{4}$/.test(pin)) return "숫자 4자리 비밀번호를 입력해 주세요.";
+    const pinKey = `pin_${s}_${nickName.replace(/[\/\s#.\[\]*]/g, "_")}`;
+    const stored = await sGet(pinKey, true);
+    if (stored && String(stored) !== pin) return "이미 사용 중인 별명이에요. 비밀번호가 달라요!";
+    if (!stored) await sSet(pinKey, pin, true);
     const uid = "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    const entry = { uid, school: school.trim() || "○○학교", nick: nick.trim() || "익명", session: s, ts: Date.now() };
+    const entry = { uid, school: school.trim() || "○○학교", nick: nickName, session: s, ts: Date.now() };
     await sSet("me", entry, false);
     const cur = (await sGet(`roster_${s}`, true)) || [];
     const next = [...cur.filter((p) => p.uid !== uid), { uid, school: entry.school, nick: entry.nick, ts: entry.ts }];
     await sSet(`roster_${s}`, next, true);
     setRoster(next);
     setMe(entry);
+    return null;
   };
 
   if (!booted) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400">불러오는 중…</div>;
@@ -2758,7 +2767,16 @@ function EntryScreen({ onJoin }) {
   const [school, setSchool] = useState("서울미술고등학교");
   const [nick, setNick] = useState("");
   const [session, setSession] = useState("");
-  const go = () => onJoin(school, nick, session);
+  const [pin, setPin] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const go = async () => {
+    if (busy) return;
+    setBusy(true); setErr("");
+    const e = await onJoin(school, nick, session, pin);
+    if (e) { setErr(e); setPin(""); }
+    setBusy(false);
+  };
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4" style={{ fontFamily: "'Noto Sans KR', system-ui, sans-serif" }}>
       <div className="w-full max-w-md">
@@ -2773,8 +2791,18 @@ function EntryScreen({ onJoin }) {
           <Field label="학교명" value={school} onChange={setSchool} placeholder="예) 서울미술고등학교" onEnter={go} />
           <Field label="별명" value={nick} onChange={setNick} placeholder="예) 디자인쌤" onEnter={go} />
           <Field label="세션 코드 (선택)" value={session} onChange={setSession} placeholder="비우면 DEMO" hint="강사가 운영자 페이지에서 정한 세션 코드를 넣으면 같은 방으로 모입니다" onEnter={go} />
-          <button onClick={go} className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold transition-colors flex items-center justify-center gap-2">
-            입장하기 <ArrowRight size={18} />
+          <div>
+            <label className="block text-[13px] font-bold text-slate-600 mb-1.5">내 비밀번호 (숫자 4자리)</label>
+            <input value={pin} onChange={(e) => { setPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setErr(""); }}
+              type="password" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="예) 1234"
+              onKeyDown={(e) => { if (e.key === "Enter") go(); }}
+              className={`w-full px-3.5 py-2.5 rounded-xl border outline-none text-[15px] tracking-[0.3em] ${err ? "border-rose-400 ring-2 ring-rose-100" : "border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"}`} />
+            <p className="text-[11px] text-slate-400 mt-1">처음 쓰는 별명이면 이 4자리로 등록되고, 다음부터는 같은 별명 + 같은 비밀번호로 입장해요.</p>
+            {err && <p className="text-[12px] text-rose-500 font-bold mt-1.5">⚠ {err}</p>}
+          </div>
+          <button onClick={go} disabled={busy}
+            className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold transition-colors flex items-center justify-center gap-2">
+            {busy ? "확인 중…" : <>입장하기 <ArrowRight size={18} /></>}
           </button>
           <p className="text-[11px] text-slate-400 text-center leading-relaxed">
             별명은 신원이 아닌 '표시용 이름'이에요. 이게 바로 오늘 배울 <b className="text-indigo-600">익명 인증</b>의 감각입니다.
