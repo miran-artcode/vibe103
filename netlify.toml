@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# 새로고침 시 404 방지 (단일 페이지 앱 라우팅)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

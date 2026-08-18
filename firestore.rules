@@ -1,0 +1,19 @@
+rules_version = '2';
+
+// ── 바이브 코딩 연수 동반자 · Firestore 보안 규칙 ──
+// Firebase 콘솔 > Firestore Database > '규칙(Rules)' 탭에 붙여넣고 '게시(Publish)' 하세요.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 연수 동반자가 공유하는 데이터(참여자 명단·익명 의견·공유 마당·세션 설정 등)
+    // 익명 인증으로 로그인한 사용자만 읽고 쓸 수 있습니다. (테스트 모드 = 전체공개 금지)
+    match /shared/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // 그 외 경로는 모두 차단
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

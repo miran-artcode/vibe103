@@ -1,0 +1,485 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>실습 가이드 · Claude 버전</title>
+<style>
+  :root{--ink:#0f172a;--muted:#64748b;--line:#e8e3dc;--bg:#faf8f5;--p:#c15f3c;--pl:#fbeee7;
+    --red:#ef4444;--gblue:#1a73e8;--ghub:#24292f;--ggreen:#2da44e;--teal:#00c7b7;--claude:#c15f3c;
+    --sh:0 12px 34px rgba(60,40,30,.10);--sh2:0 4px 14px rgba(60,40,30,.06);}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:var(--ink);background:var(--bg);line-height:1.65}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .wrap{max-width:920px;margin:0 auto;padding:0 18px}
+
+  header{background:linear-gradient(135deg,#3a2318,#c15f3c);color:#fff;padding:32px 0 24px}
+  header .tag{display:inline-block;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);border-radius:99px;padding:4px 13px;font-size:12px;font-weight:700;margin-bottom:12px}
+  header h1{margin:0 0 6px;font-size:25px;letter-spacing:-.5px}
+  header p{margin:0;color:#f3ddd2;font-size:14px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:12.5px;color:#f3ddd2}
+  .legend b{display:inline-flex;align-items:center;gap:6px}
+  .rdot{width:14px;height:14px;border-radius:4px;border:2px solid #fff;box-shadow:0 0 0 3px rgba(239,68,68,.5)}
+
+  /* 바로가기 링크 */
+  .linkbar{background:#2a1a12;border-top:1px solid rgba(255,255,255,.1)}
+  .linkbar .in{max-width:920px;margin:0 auto;padding:12px 18px;display:flex;gap:8px;overflow-x:auto}
+  .linkbar .in::-webkit-scrollbar{display:none}
+  .lk{flex:none;display:inline-flex;flex-direction:column;gap:1px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:8px 12px;text-decoration:none;transition:.15s}
+  .lk:hover{background:rgba(255,255,255,.16)}
+  .lk .t{font-size:12.5px;font-weight:700;color:#fff;white-space:nowrap}
+  .lk .u{font-size:10.5px;color:#e9b79f;font-family:ui-monospace,monospace;white-space:nowrap}
+
+  .tabs{position:sticky;top:0;z-index:30;background:rgba(250,248,245,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);overflow-x:auto}
+  .tabs .in{display:flex;gap:4px;max-width:920px;margin:0 auto;padding:8px 14px;white-space:nowrap}
+  .tab{flex:none;border:1px solid var(--line);background:#fff;border-radius:99px;padding:8px 13px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer}
+  .tab.on{background:var(--claude);border-color:var(--claude);color:#fff}
+  .tabs .in::-webkit-scrollbar{display:none}
+
+  section.pane{display:none;padding:24px 0 50px;animation:f .25s ease}
+  section.pane.on{display:block}
+  @keyframes f{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .ph{margin:0 0 4px;font-size:21px}
+  .psub{color:var(--muted);font-size:14px;margin:0 0 20px}
+
+  .step{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh2);padding:18px;margin:0 0 16px}
+  .sno{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--claude);background:var(--pl);border-radius:99px;padding:4px 12px;margin-bottom:12px}
+  .gov{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:7px 12px;text-decoration:none;font-size:12.5px;font-weight:700;color:var(--gblue);margin:0 0 10px}
+  .gov .u{color:#94a3b8;font-family:ui-monospace,monospace;font-size:11px;font-weight:500}
+  .gov:hover{border-color:var(--gblue)}
+  .todo{margin:14px 0 0;padding-left:0;list-style:none;counter-reset:t;display:flex;flex-direction:column;gap:8px}
+  .todo li{counter-increment:t;display:flex;gap:11px;align-items:flex-start;font-size:14px}
+  .todo li:before{content:counter(t);flex:none;width:23px;height:23px;border-radius:7px;background:#3a2318;color:#fff;font-weight:800;font-size:12px;display:grid;place-items:center}
+
+  .win{border:1px solid #ddd6cd;border-radius:11px;overflow:hidden;box-shadow:0 6px 20px rgba(60,40,30,.12);background:#fff}
+  .bar{display:flex;align-items:center;gap:9px;padding:8px 12px;background:#f0ece6;border-bottom:1px solid #e3ddd3}
+  .tl{display:flex;gap:5px}.tl i{width:11px;height:11px;border-radius:50%}.tl .r{background:#ff5f57}.tl .y{background:#febc2e}.tl .g{background:#28c840}
+  .url{flex:1;background:#fff;border:1px solid #e0d9cf;border-radius:7px;padding:4px 11px;font-size:11.5px;color:#64748b}
+  .scr{position:relative;background:#fafbfc;padding:16px}
+
+  .hl{outline:3px solid var(--red);outline-offset:2px;border-radius:8px;box-shadow:0 0 0 6px rgba(239,68,68,.16);position:relative}
+  .bdg{position:absolute;z-index:5;width:25px;height:25px;border-radius:50%;background:var(--red);color:#fff;font-weight:800;font-size:13px;display:grid;place-items:center;box-shadow:0 2px 8px rgba(239,68,68,.5)}
+  .ctip{display:inline-flex;align-items:center;gap:5px;background:var(--red);color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;position:absolute;z-index:5}
+
+  .row{display:flex;gap:12px;align-items:flex-start}
+  .card-ui{background:#fff;border:1px solid #e6ddd2;border-radius:10px;padding:14px}
+  .gbtn{display:inline-block;background:var(--gblue);color:#fff;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700}
+  .gbtn.ghost{background:#fff;color:var(--gblue);border:1px solid #d2e3fc}
+  .cbtn{display:inline-block;background:var(--claude);color:#fff;border-radius:8px;padding:8px 15px;font-size:13px;font-weight:700}
+  .toggle{width:38px;height:20px;border-radius:99px;background:#1a73e8;position:relative;flex:none}
+  .toggle:after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;right:2px}
+  .toggle.off{background:#bdc1c6}.toggle.off:after{right:auto;left:2px}
+  .inp{background:#fff;border:1px solid #d8cfc2;border-radius:7px;padding:9px 11px;font-size:13px;color:#1f2937}
+  .lbl{font-size:11px;color:#8a7f70;margin-bottom:4px}
+  .sidebar{width:150px;flex:none;background:#fff;border-right:1px solid #e8ebf0;border-radius:8px 0 0 8px;padding:10px 8px;font-size:12.5px}
+  .sidebar .mi{padding:7px 9px;border-radius:7px;color:#3c4043}
+  .sidebar .mi.act{background:#e8f0fe;color:#1a73e8;font-weight:700}
+
+  .codew{margin:8px 0 0;border-radius:11px;overflow:hidden;border:1px solid #2a2018}
+  .codew .ch{display:flex;justify-content:space-between;align-items:center;background:#2a2018;padding:8px 13px}
+  .codew .ct{color:#e7d9cd;font-size:12px;font-weight:700}.codew .cb{border:none;background:#4a3528;color:#f3e6da;font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:7px;cursor:pointer}
+  .codew pre{margin:0;background:#1c140e;color:#f0e6da;padding:14px 15px;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.65;white-space:pre-wrap;overflow:auto}
+
+  .note{border-radius:11px;padding:13px 15px;font-size:13.5px;margin:14px 0 0}
+  .note.warn{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+  .note.tip{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+  .note.ana{background:#fbeee7;border:1px solid #f0d3c2;color:#9a4322}
+  .note b{font-weight:800}.note a{color:inherit;font-weight:700}
+
+  .triostruct{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0 0}
+  .triostruct .c{background:#fff;border:1px solid #e6ddd2;border-radius:10px;padding:13px}
+  .triostruct .lv{font-size:10px;font-weight:800;color:var(--gblue);letter-spacing:.5px}
+  .triostruct h5{margin:5px 0 2px;font-size:14px}.triostruct p{margin:0;font-size:12px;color:var(--muted)}
+
+  .tlist{display:flex;flex-direction:column;gap:9px;margin:8px 0 0}
+  .ti{background:#fff;border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+  .ti .h{font-family:ui-monospace,monospace;font-weight:800;color:#dc2626;font-size:13px}
+  .ti .why{font-size:12.5px;color:#475569;margin-top:4px}
+  .ti .fix{font-size:12.5px;color:#166534;margin-top:6px;background:#f0fdf4;border-radius:7px;padding:7px 10px}.ti .fix b{color:#166534}
+
+  .chk{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:9px}
+  .chk li{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:11px;padding:12px 14px;font-size:14px}
+  .chk li:before{content:"☐";color:var(--claude);font-weight:800;flex:none;font-size:16px}
+
+  .dd{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0 0}
+  .dd .col{border-radius:12px;padding:14px}
+  .dd .do{background:#f0fdf4;border:1px solid #bbf7d0}.dd .dont{background:#fef2f2;border:1px solid #fecaca}
+  .dd h5{margin:0 0 8px;font-size:14px}.dd .do h5{color:#166534}.dd .dont h5{color:#991b1b}
+  .dd ul{margin:0;padding-left:18px;font-size:13px}.dd .do li{color:#15803d}.dd .dont li{color:#b91c1c}.dd li{margin:4px 0}
+
+  /* 이야기 컷 (만화) */
+  .comic{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin:0 0 16px;box-shadow:var(--sh2)}
+  .comic .word{font-size:11px;color:var(--claude);font-weight:800;letter-spacing:1px}
+  .comic .ctitle{font-weight:800;font-size:17px;margin:2px 0 0}
+  .panels{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0 0}
+  .panel{border:1px solid #ece4da;border-radius:12px;padding:13px;background:#faf8f5;display:flex;flex-direction:column;gap:9px;min-height:140px}
+  .panel .scene{font-size:32px;text-align:center;line-height:1.1}
+  .panel .bubble{background:#fff;border:1px solid #e6ddd2;border-radius:10px;padding:8px 10px;font-size:12px;color:#3a3a3a}
+  .panel .cap{font-size:10.5px;color:#94a3b8;text-align:center;margin-top:auto;font-weight:700}
+  .comic .punch{margin-top:14px;background:var(--pl);border:1px solid #f0d3c2;border-radius:10px;padding:11px 14px;font-size:13.5px;color:#9a4322;font-weight:600}
+
+  footer{text-align:center;color:var(--muted);font-size:12.5px;padding:0 18px 36px;max-width:920px;margin:0 auto}
+  @media(max-width:640px){.triostruct,.dd,.panels{grid-template-columns:1fr}.sidebar{width:120px}}
+</style>
+
+<header>
+  <div class="wrap">
+    <span class="tag">버전 B · Claude로 진행</span>
+    <h1>🟠 실습 가이드 · Claude 버전</h1>
+    <p>Claude로 만들고 → GitHub → Firebase → Netlify로 배포. 화면을 그대로 보며 <b>빨간 표시(클릭 지점)</b>대로 따라오세요. 모르는 단어는 <b>'이야기 컷'</b> 탭에서 만화로 확인!</p>
+    <div class="legend"><b><span class="rdot"></span> = 클릭/입력 지점</b><b>① ② ③ = 순서</b><b>탭(A~H)으로 이동</b></div>
+  </div>
+</header>
+<div class="linkbar"><div class="in">
+  <a class="lk" href="https://claude.ai" target="_blank" rel="noopener"><span class="t">🟠 Claude</span><span class="u">claude.ai</span></a>
+  <a class="lk" href="https://console.firebase.google.com" target="_blank" rel="noopener"><span class="t">🔥 Firebase 콘솔</span><span class="u">console.firebase.google.com</span></a>
+  <a class="lk" href="https://firebase.google.com/docs/firestore" target="_blank" rel="noopener"><span class="t">📚 Firebase 문서</span><span class="u">firebase.google.com/docs</span></a>
+  <a class="lk" href="https://app.netlify.com/drop" target="_blank" rel="noopener"><span class="t">◈ Netlify 드롭</span><span class="u">app.netlify.com/drop</span></a>
+  <a class="lk" href="https://github.com" target="_blank" rel="noopener"><span class="t">🐙 GitHub</span><span class="u">github.com</span></a>
+  <a class="lk" href="https://nodejs.org" target="_blank" rel="noopener"><span class="t">⬢ Node.js</span><span class="u">nodejs.org</span></a>
+  <a class="lk" href="https://vercel.com" target="_blank" rel="noopener"><span class="t">▲ Vercel</span><span class="u">vercel.com</span></a>
+</div></div>
+
+<div class="tabs"><div class="in" id="tabs"></div></div>
+<div class="wrap">
+
+<!-- A -->
+<section class="pane on" data-pane="A">
+  <h2 class="ph">A. Claude로 만들기</h2>
+  <p class="psub">claude.ai 대화창에 한국어로 부탁하면, 오른쪽에 동작하는 결과물(아티팩트)이 생깁니다.</p>
+  <div class="step">
+    <div class="sno">단계 1 · 대화로 만들고 미리보기</div>
+    <a class="gov" href="https://claude.ai" target="_blank" rel="noopener">🔗 Claude 열기 <span class="u">claude.ai</span></a>
+    <div class="win">
+      <div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">🔒 claude.ai</div></div>
+      <div class="scr" style="padding:0;background:#fff">
+        <div style="display:flex;min-height:220px">
+          <div style="flex:1.1;padding:14px;display:flex;flex-direction:column;gap:10px;border-right:1px solid #eee">
+            <div style="align-self:flex-end;max-width:80%;background:#c15f3c;color:#fff;border-radius:12px 12px 4px 12px;padding:9px 12px;font-size:12.5px">버튼을 누르면 칭찬 문구가 뜨는 도구를 만들어줘. 휴대폰에서도 잘 보이게.</div>
+            <div style="align-self:flex-start;max-width:85%;background:#f4f1ec;border-radius:12px 12px 12px 4px;padding:9px 12px;font-size:12.5px;color:#3a3a3a">네, 오른쪽에 만들었어요. 색이나 문구를 바꿔드릴까요?</div>
+            <div style="margin-top:auto;position:relative"><span class="bdg" style="left:-10px;top:-12px">1</span><div class="inp hl" style="display:flex;justify-content:space-between;align-items:center;color:#94a3b8;font-size:12.5px">무엇이든 물어보세요...<span class="cbtn" style="padding:4px 10px">↑</span></div></div>
+          </div>
+          <div style="flex:1;background:#faf8f5">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-bottom:1px solid #eee;font-size:12px;font-weight:700">✦ 칭찬 도구<span style="position:relative"><span class="bdg" style="right:-8px;top:-16px">3</span><span class="hl" style="background:#c15f3c;color:#fff;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700">↗ 게시</span></span></div>
+            <div class="hl" style="margin:24px 12px;text-align:center;background:#fff;border-radius:10px;padding:22px 10px;position:relative"><span class="bdg" style="left:-10px;top:-12px">2</span><div style="font-size:14px;font-weight:700;margin-bottom:10px">오늘도 멋져요! 🎉</div><span class="cbtn">칭찬받기</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="todo">
+      <li>아래 <b>입력창</b>에 한국어로 요청("…도구를 만들어줘").</li>
+      <li>오른쪽 <b>아티팩트(미리보기)</b> 생성 → 수정도 대화로("색을 파스텔로", "글자 크게").</li>
+      <li>우측 상단 <b>게시(↗)</b>로 공유 링크 생성(가장 빠른 배포).</li>
+    </ol>
+    <div class="note ana"><b>🔎 지식 넣기</b> · 용어·문항이 많으면 <b>프로젝트(Projects)</b>에 자료를 올리고 그 안에서 대화. 짧으면 목록을 대화에 붙여 "이 목록으로 바꿔줘". 모르는 단어가 나오면 <b>H. 이야기 컷</b> 탭을 보세요.</div>
+  </div>
+</section>
+
+<!-- B -->
+<section class="pane" data-pane="B">
+  <h2 class="ph">B. Firebase 붙이기 (저장 기능) — 상세</h2>
+  <p class="psub">새로고침해도 데이터가 남게 하려면 Firebase가 필요합니다. 콘솔 화면을 단계별로 따라오세요.</p>
+  <a class="gov" href="https://console.firebase.google.com" target="_blank" rel="noopener">🔗 Firebase 콘솔 열기 <span class="u">console.firebase.google.com</span></a>
+
+  <div class="step">
+    <div class="sno">단계 1 · 프로젝트 만들기</div>
+    <div class="win"><div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">🔒 console.firebase.google.com</div></div>
+      <div class="scr" style="background:#f1f3f4"><div class="row" style="gap:12px;flex-wrap:wrap"><div class="card-ui" style="position:relative;width:150px;text-align:center;border-style:dashed"><span class="bdg" style="right:-10px;top:-10px">1</span><span class="hl" style="display:inline-block;width:100%;padding:18px 0;color:#1a73e8;font-weight:700;font-size:13px">＋ 프로젝트 만들기</span></div><div class="card-ui" style="width:150px;text-align:center;color:#9aa0a6;font-size:12px;padding:24px 0">기존 프로젝트</div></div></div>
+    </div>
+    <ol class="todo"><li>구글 계정으로 로그인 → <b>＋ 프로젝트 만들기</b> 클릭.</li></ol>
+  </div>
+
+  <div class="step">
+    <div class="sno">단계 2 · 이름 입력 & 애널리틱스 끄기</div>
+    <div class="win"><div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">프로젝트 만들기</div></div>
+      <div class="scr"><div class="lbl">프로젝트 이름</div><div class="inp hl" style="position:relative;max-width:300px">class-4-2<span class="bdg" style="right:-10px;top:-12px">1</span></div><div style="font-size:11px;color:#94a3b8;margin:4px 0 16px">영문 소문자 + 하이픈 권장</div><div class="row" style="align-items:center;justify-content:space-between;max-width:320px;background:#f8fafc;border:1px solid #e3e8ef;border-radius:8px;padding:10px 12px;position:relative"><span class="bdg" style="right:-10px;top:-12px">2</span><span style="font-size:13px">Google 애널리틱스</span><span class="toggle off hl"></span></div><div style="margin-top:16px"><span class="gbtn" style="position:relative">프로젝트 만들기<span class="bdg" style="right:-10px;top:-12px">3</span></span></div></div>
+    </div>
+    <ol class="todo"><li>이름에 <span class="mono">class-4-2</span>처럼 영문소문자+하이픈.</li><li>애널리틱스는 처음엔 끄기.</li><li><b>프로젝트 만들기</b> → 잠시 후 <b>계속</b>.</li></ol>
+  </div>
+
+  <div class="step">
+    <div class="sno">단계 3 · 웹앱 추가 (＜/＞)</div>
+    <div class="win"><div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">프로젝트 개요</div></div>
+      <div class="scr" style="background:#f1f3f4"><div style="font-size:13px;color:#3c4043;margin-bottom:10px">앱에 Firebase를 추가하여 시작하기</div><div class="row" style="gap:14px"><span style="width:48px;height:48px;border-radius:50%;background:#fff;border:1px solid #e3e8ef;display:grid;place-items:center;color:#5f6368;font-size:11px">iOS</span><span style="width:48px;height:48px;border-radius:50%;background:#fff;border:1px solid #e3e8ef;display:grid;place-items:center;color:#5f6368;font-size:11px">And</span><span class="hl" style="width:48px;height:48px;border-radius:50%;background:#fff;border:1px solid #1a73e8;display:grid;place-items:center;color:#1a73e8;font-weight:800;position:relative">&lt;/&gt;<span class="bdg" style="right:-10px;top:-10px">1</span></span></div><div style="font-size:11.5px;color:#94a3b8;margin-top:8px">＜/＞ = 웹앱 · 닉네임 입력 → 앱 등록</div></div>
+    </div>
+    <ol class="todo"><li>프로젝트 개요에서 <b>＜/＞(웹) 아이콘</b> → 닉네임 입력 → <b>앱 등록</b>. (호스팅 체크 안 해도 됨)</li></ol>
+  </div>
+
+  <div class="step">
+    <div class="sno">단계 4 · firebaseConfig 복사 → Claude에 붙여넣기</div>
+    <div class="win"><div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">SDK 설정 및 구성</div></div>
+      <div class="scr" style="background:#1e293b;padding:0"><div class="hl" style="margin:14px;position:relative"><span class="bdg" style="right:-10px;top:-12px">1</span><pre class="mono" style="margin:0;background:#0f172a;color:#e2e8f0;padding:14px;border-radius:8px;font-size:12px;line-height:1.6">const firebaseConfig = {
+  apiKey: "AIza...",
+  authDomain: "class-4-2.firebaseapp.com",
+  projectId: "class-4-2",
+  ...
+};</pre></div></div>
+    </div>
+    <ol class="todo"><li>경로: <span class="mono">프로젝트 설정 → 내 앱 → SDK 설정 및 구성 → 구성</span>.</li><li><b>config 전체 복사</b> → Claude 대화에 붙여넣고 "이 config로 연결해줘"(E탭 2번 패턴).</li></ol>
+    <div class="note warn"><b>⚠️ 보안</b> · config·API 키는 <span class="mono">.env</span>로 분리하고 <span class="mono">.gitignore</span> 처리를 Claude에 함께 요청. 단일 HTML에 그대로 두면 공개되니, 읽기 차단 보안 규칙(단계 6)이 1차 방어선입니다.</div>
+  </div>
+
+  <div class="step">
+    <div class="sno">단계 5 · Firestore 데이터베이스 만들기</div>
+    <div class="win"><div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">Firestore Database</div></div>
+      <div class="scr" style="background:#f1f3f4;padding:0"><div class="row" style="gap:0"><div class="sidebar"><div class="mi">🔑 Authentication</div><div class="mi act" style="position:relative">🗄️ Firestore Database<span class="bdg" style="right:-8px;top:-2px">1</span></div><div class="mi">🚀 Hosting</div></div><div style="flex:1;padding:18px;text-align:center"><span class="hl gbtn" style="position:relative">데이터베이스 만들기<span class="bdg" style="right:-10px;top:-12px">2</span></span></div></div></div>
+    </div>
+    <ol class="todo"><li>왼쪽 메뉴 <b>Firestore Database</b> → <b>데이터베이스 만들기</b>.</li></ol>
+  </div>
+
+  <div class="step">
+    <div class="sno">단계 6 · 테스트 모드 + 서울 리전 → 규칙 게시</div>
+    <div class="win"><div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">데이터베이스 만들기 / 규칙</div></div>
+      <div class="scr"><div class="lbl">위치(리전)</div><div class="inp" style="max-width:280px;margin-bottom:12px">asia-northeast3 (서울)</div><div class="card-ui hl" style="max-width:320px;position:relative;margin-bottom:14px"><span class="bdg" style="right:-10px;top:-12px">1</span><b>테스트 모드에서 시작</b></div>
+        <div style="font-size:12px;color:#5f6368;margin-bottom:6px">→ 만든 뒤 <b>규칙(Rules)</b> 탭에 붙여넣고</div>
+        <pre class="mono" style="margin:0 0 10px;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;font-size:11px;line-height:1.55">rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    match /posts/{id} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if false;
+    }
+  }
+}</pre>
+        <span class="hl" style="background:#1a73e8;color:#fff;border-radius:7px;padding:8px 16px;font-size:13px;font-weight:700;position:relative">게시(Publish)<span class="bdg" style="right:-10px;top:-12px">2</span></span>
+      </div>
+    </div>
+    <ol class="todo"><li>리전 <b>서울(asia-northeast3)</b> → <b>테스트 모드</b>로 시작.</li><li><b>규칙(Rules)</b> 탭에 보안 규칙(E탭 3번) 붙여넣고 <b>게시</b>.</li></ol>
+    <div class="triostruct"><div class="c"><div class="lv">Collection</div><h5>엑셀 시트</h5><p>posts</p></div><div class="c"><div class="lv">Document</div><h5>엑셀 행</h5><p>응답 1건</p></div><div class="c"><div class="lv">Field</div><h5>데이터</h5><p>내용·시간</p></div></div>
+    <div class="note warn"><b>⚠️ 테스트 모드는 전체 공개</b> · 30일 후 자동 차단되지만 그 전에도 위험. 규칙을 게시해 꼭 닫으세요. (왜 위험한지는 H탭 '테스트 모드' 만화 참고)</div>
+  </div>
+
+  <div class="step">
+    <div class="sno">단계 7 · Authentication 익명 + 배포 도메인 승인</div>
+    <div class="win"><div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">Authentication › Sign-in method / Settings</div></div>
+      <div class="scr" style="background:#f1f3f4;padding:0"><div class="row" style="gap:0"><div class="sidebar"><div class="mi act">🔑 Authentication</div><div class="mi">🗄️ Firestore</div></div><div style="flex:1;padding:14px"><div class="card-ui hl" style="display:flex;align-items:center;justify-content:space-between;position:relative;margin-bottom:10px"><span class="bdg" style="left:-10px;top:-12px">1</span><span style="font-size:13px"><b>익명</b></span><span class="gbtn" style="padding:5px 12px">사용 설정</span></div><div class="card-ui" style="display:flex;align-items:center;justify-content:space-between;position:relative"><span class="bdg" style="left:-10px;top:-12px">2</span><span style="font-size:12.5px">승인된 도메인</span><span class="gbtn ghost" style="padding:5px 12px">＋ 도메인 추가</span></div></div></div></div>
+    </div>
+    <ol class="todo"><li><b>Sign-in method → 익명</b> 사용 설정(개인정보 0).</li><li>배포 후(D탭) <b>Settings → 승인된 도메인</b>에 <span class="mono">xxx.netlify.app</span> 추가해야 로그인 작동.</li></ol>
+  </div>
+</section>
+
+<!-- C -->
+<section class="pane" data-pane="C">
+  <h2 class="ph">C. (선택) 코드 받아 GitHub에 올리기</h2>
+  <p class="psub">버전 보관·자동 배포가 필요하면 저장소에 올립니다. 단순 공유면 D탭으로 바로.</p>
+  <a class="gov" href="https://github.com" target="_blank" rel="noopener">🔗 GitHub 열기 <span class="u">github.com</span></a>
+  <div class="step">
+    <div class="sno">단계 1 · Claude 코드 받기 → 업로드</div>
+    <div class="win"><div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">🔒 github.com / class-4-2</div></div>
+      <div class="scr" style="background:#fff"><div style="display:flex;gap:8px;margin-bottom:12px;font-size:12.5px"><span style="background:#2da44e;color:#fff;border-radius:6px;padding:5px 11px;font-weight:700">＋ Add file ▾</span><span style="color:#475569;align-self:center">→ Upload files</span></div><div class="hl" style="border:2px dashed #d0d7de;border-radius:10px;padding:24px;text-align:center;color:#57606a;font-size:13px;position:relative"><span class="bdg" style="right:-10px;top:-12px">1</span>📄 index.html 을 여기로 드래그</div><div style="margin-top:14px"><span class="hl" style="background:#2da44e;color:#fff;border-radius:7px;padding:8px 16px;font-size:13px;font-weight:700;position:relative">Commit changes<span class="bdg" style="right:-10px;top:-12px">2</span></span></div></div>
+    </div>
+    <ol class="todo"><li>Claude 아티팩트에서 <b>코드 복사/다운로드</b> → <span class="mono">index.html</span>로 저장.</li><li>새 저장소(Public) → <b>Add file → Upload files</b> → 드래그 → <b>Commit changes</b>.</li></ol>
+  </div>
+</section>
+
+<!-- D -->
+<section class="pane" data-pane="D">
+  <h2 class="ph">D. 배포 — 학생에게 링크로</h2>
+  <p class="psub">쉬운 순서: ① Claude 게시 → ② Netlify 드롭 → ③ GitHub 연결.</p>
+  <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:8px"><a class="gov" href="https://app.netlify.com/drop" target="_blank" rel="noopener">🔗 Netlify 드롭 <span class="u">app.netlify.com/drop</span></a><a class="gov" href="https://vercel.com" target="_blank" rel="noopener">🔗 Vercel <span class="u">vercel.com</span></a></div>
+  <div class="step">
+    <div class="sno">방법 ① Claude 아티팩트 게시 (가장 빠름)</div>
+    <div class="win"><div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">claude.ai · 아티팩트</div></div>
+      <div class="scr" style="background:#faf8f5"><div class="row" style="align-items:center;gap:12px;flex-wrap:wrap"><span class="hl" style="background:#c15f3c;color:#fff;border-radius:7px;padding:8px 15px;font-size:13px;font-weight:700;position:relative">↗ 게시(Publish)<span class="bdg" style="right:-10px;top:-12px">1</span></span><span style="color:#94a3b8">→</span><span class="card-ui" style="font-size:12.5px;background:#fff">공개 링크 · <span class="mono">claude.site/…</span></span></div></div>
+    </div>
+    <ol class="todo"><li>아티팩트 우측 상단 <b>게시</b> → 링크/QR 전달.</li></ol>
+    <div class="note warn"><b>⚠️</b> <b>Firebase·개인정보</b>가 든 도구는 이 방식 대신 Netlify로.</div>
+  </div>
+  <div class="step">
+    <div class="sno">방법 ② Netlify 드롭 (Firebase 앱 권장)</div>
+    <a class="gov" href="https://app.netlify.com/drop" target="_blank" rel="noopener">🔗 여기에 파일을 드래그 <span class="u">app.netlify.com/drop</span></a>
+    <div class="win"><div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">🔒 app.netlify.com/drop</div></div>
+      <div class="scr" style="background:#fff"><div class="hl" style="border:2px dashed #99e6df;border-radius:10px;padding:24px;text-align:center;color:#0f766e;font-size:13px;background:#f0fdfa;position:relative"><span class="bdg" style="right:-10px;top:-12px">1</span>📄 index.html(폴더) 을 여기로 드래그앤드롭</div><div class="card-ui" style="margin-top:12px;background:#f0fdfa;border-color:#99f6e4;font-size:12.5px;color:#115e59"><span class="mono">https://class-4-2.netlify.app</span> 즉시 발급</div></div>
+    </div>
+    <ol class="todo"><li>Claude가 준 <span class="mono">index.html</span>을 폴더에 넣고 드래그.</li><li>발급 URL을 Firebase <b>승인된 도메인</b>에 추가(B탭 7단계).</li></ol>
+    <div class="note tip"><b>방법 ③ GitHub 연결</b> · C탭 저장소를 Netlify "Import an existing project"로 연결 → 푸시마다 자동 재배포.</div>
+  </div>
+</section>
+
+<!-- E -->
+<section class="pane" data-pane="E">
+  <h2 class="ph">E. 복사 키트 (Claude용 프롬프트)</h2>
+  <p class="psub">대화창에 그대로 붙여넣어 쓰세요.</p>
+  <div class="step"><div class="sno">0 · 사전 준비물(터미널)</div><a class="gov" href="https://nodejs.org" target="_blank" rel="noopener">🔗 Node.js 설치 <span class="u">nodejs.org</span></a><div class="codew"><div class="ch"><span class="ct">터미널에 순서대로</span><button class="cb" data-c="node -v
+npm install -g firebase-tools
+firebase --version">복사</button></div><pre>node -v
+npm install -g firebase-tools
+firebase --version</pre></div></div>
+  <div class="step"><div class="sno">1 · 만들기 패턴</div><div class="codew"><div class="ch"><span class="ct">Claude 대화창</span><button class="cb" data-c="중학교 수업용 [도구 이름]을 하나의 HTML 파일로 만들어줘.
+- 설치 없이 파일 하나로, 휴대폰에서도 잘 보이게(반응형)
+- 핵심 기능: [기능 1] / [기능 2] / [기능 3]
+- 색은 [톤], 글자는 크게
+먼저 예시 데이터로 만들고, 내가 쉽게 바꿀 수 있게 내용을 한곳에 모아줘.">복사</button></div><pre>중학교 수업용 [도구 이름]을 하나의 HTML 파일로 만들어줘.
+- 설치 없이 파일 하나로, 휴대폰에서도 잘 보이게(반응형)
+- 핵심 기능: [기능 1] / [기능 2] / [기능 3]
+- 색은 [톤], 글자는 크게
+먼저 예시 데이터로 만들고, 내가 쉽게 바꿀 수 있게 내용을 한곳에 모아줘.</pre></div></div>
+  <div class="step"><div class="sno">2 · Firebase 연동 패턴</div><div class="codew"><div class="ch"><span class="ct">firebaseConfig와 함께</span><button class="cb" data-c="이 도구에 Firebase 저장 기능을 붙여줘. 전체를 하나의 HTML 파일로.
+- Firebase 웹 SDK는 CDN으로 불러와줘(설치 없이)
+- 로그인은 익명 인증(Anonymous Auth), 이름·이메일은 받지 마
+- 제출은 'posts' 컬렉션에 (내용, 제출시간)만 저장
+- 보안 규칙도 함께: 테스트 모드 금지, 쓰기만 허용·읽기 차단
+아래는 내 firebaseConfig야:
+(여기에 붙여넣기)">복사</button></div><pre>이 도구에 Firebase 저장 기능을 붙여줘. 전체를 하나의 HTML 파일로.
+- Firebase 웹 SDK는 CDN으로 불러와줘(설치 없이)
+- 로그인은 익명 인증(Anonymous Auth), 이름·이메일은 받지 마
+- 제출은 'posts' 컬렉션에 (내용, 제출시간)만 저장
+- 보안 규칙도 함께: 테스트 모드 금지, 쓰기만 허용·읽기 차단
+아래는 내 firebaseConfig야:
+(여기에 붙여넣기)</pre></div></div>
+  <div class="step"><div class="sno">3 · 보안 규칙</div><div class="codew"><div class="ch"><span class="ct mono">firestore.rules</span><button class="cb" data-c="rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    match /posts/{id} {
+      // 익명 로그인한 사람만 쓰기
+      allow create: if request.auth != null;
+      // 앱에서 읽기/수정 차단 (교사는 콘솔에서 열람)
+      allow read, update, delete: if false;
+    }
+  }
+}">복사</button></div><pre>rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    match /posts/{id} {
+      // 익명 로그인한 사람만 쓰기
+      allow create: if request.auth != null;
+      // 앱에서 읽기/수정 차단 (교사는 콘솔에서 열람)
+      allow read, update, delete: if false;
+    }
+  }
+}</pre></div></div>
+  <div class="step"><div class="sno">4 · 디버깅 프롬프트</div><div class="codew"><div class="ch"><span class="ct">콘솔 붉은 메시지를 붙여넣기</span><button class="cb" data-c="아래는 브라우저 개발자 도구 콘솔에 뜬 빨간 에러 메시지야.
+원인을 짚어주고, 수정한 전체 코드를 다시 줘.
+(에러 메시지 그대로 붙여넣기)">복사</button></div><pre>아래는 브라우저 개발자 도구 콘솔에 뜬 빨간 에러 메시지야.
+원인을 짚어주고, 수정한 전체 코드를 다시 줘.
+(에러 메시지 그대로 붙여넣기)</pre></div></div>
+</section>
+
+<!-- F -->
+<section class="pane" data-pane="F">
+  <h2 class="ph">F. 에러 실전 사례집</h2>
+  <p class="psub">"안 돼요"가 아니라 <b>콘솔의 붉은 메시지를 복사 → Claude에 그대로 전달</b>. (디버깅이 뭔지는 H탭 만화)</p>
+  <div class="tlist">
+    <div class="ti"><div class="h mono">Uncaught ReferenceError: firebase is not defined</div><div class="why">원인 · Firebase SDK가 안 불러와짐(CDN 주소·순서).</div><div class="fix"><b>Claude에:</b> "콘솔에 'firebase is not defined'가 떠. SDK가 CDN으로 제대로 로드되는지, 스크립트 순서를 점검해 전체 코드를 다시 줘."</div></div>
+    <div class="ti"><div class="h mono">Missing or insufficient permissions</div><div class="why">원인 · 보안 규칙이 읽기를 막음(의도된 경우) 또는 규칙 미게시.</div><div class="fix"><b>점검:</b> 규칙 '게시' 여부 확인. 화면에 목록을 보여줘야 하면 읽기 허용 규칙이 필요 — 용도에 맞게 Claude에 재작성 요청.</div></div>
+    <div class="ti"><div class="h mono">auth/unauthorized-domain</div><div class="why">원인 · 배포 도메인이 Firebase에 미등록.</div><div class="fix"><b>해결:</b> Authentication → Settings → <b>승인된 도메인</b>에 <span class="mono">xxx.netlify.app</span> 추가(B탭 7).</div></div>
+    <div class="ti"><div class="h">화면이 비거나 한글이 깨짐</div><div class="why">원인 · 인코딩 누락, 또는 미리보기 환경의 외부 연결 차단.</div><div class="fix"><b>해결:</b> <span class="mono">&lt;meta charset="utf-8"&gt;</span> 확인 + Firebase 동작은 Netlify 배포 후 확인.</div></div>
+  </div>
+  <div class="note tip"><b>💡 핵심 습관</b> · F12 → Console 탭 → 빨간 줄 드래그 복사 → Claude에 붙여넣기.</div>
+</section>
+
+<!-- G -->
+<section class="pane" data-pane="G">
+  <h2 class="ph">G. 개인정보·저작권 교실 체크판</h2>
+  <p class="psub">편리함만큼 책임도 — 배포 전 한 번 더.</p>
+  <div class="step"><div class="sno">학생 사진</div><div class="dd"><div class="col do"><h5>✅ 이렇게</h5><ul><li>꼭 필요할 때만·동의 받고</li><li>식별 최소화·해상도 낮추기</li><li>수업 후 삭제</li></ul></div><div class="col dont"><h5>⛔ 하지 마세요</h5><ul><li>공개 URL·외부 저장소에 업로드</li><li>이름표와 함께 노출</li></ul></div></div></div>
+  <div class="step"><div class="sno">응답·점수 데이터</div><div class="dd"><div class="col do"><h5>✅ 이렇게</h5><ul><li>익명 인증·닉네임</li><li>보안 규칙으로 읽기 차단</li><li>수집 최소·사용 후 삭제</li></ul></div><div class="col dont"><h5>⛔ 하지 마세요</h5><ul><li>실명·학번·연락처 저장</li><li>테스트 모드 방치</li></ul></div></div></div>
+  <div class="step"><div class="sno">교과서 지문·이미지 / AI·계정</div><div class="dd"><div class="col do"><h5>✅ 이렇게</h5><ul><li>출처 표기·허용 범위</li><li>AI 생성물은 교사 검수</li><li>개인 구글 계정으로 가입</li></ul></div><div class="col dont"><h5>⛔ 하지 마세요</h5><ul><li>지문·이미지 무단 복제·배포</li><li>AI 결과 맹신(할루시네이션)</li><li>학교 계정으로 외부 가입</li></ul></div></div></div>
+  <ul class="chk"><li>테스트 모드를 닫고 보안 규칙을 게시했는가?</li><li>개인정보를 '최소 수집(익명)'으로 설계했는가?</li><li>내 폰·옆 사람 폰에서 작동하는가?</li></ul>
+</section>
+
+<!-- H. 이야기 컷 -->
+<section class="pane" data-pane="H">
+  <h2 class="ph">H. 이야기 컷 — 단어가 그림으로</h2>
+  <p class="psub">어려운 용어를 짧은 만화로. 실습 중 막히면 여기서 개념을 잡고 가세요.</p>
+
+  <div class="comic"><div class="word">DEBUGGING</div><div class="ctitle">🐞 디버깅이 뭐예요?</div>
+    <div class="panels">
+      <div class="panel"><div class="scene">😱💻</div><div class="bubble">"앱이 안 돌아가요! 화면에 빨간 글씨가 떠요"</div><div class="cap">① 문제 발생</div></div>
+      <div class="panel"><div class="scene">🔍📋</div><div class="bubble">F12 → 콘솔의 빨간 줄을 그대로 복사</div><div class="cap">② 단서 수집</div></div>
+      <div class="panel"><div class="scene">🤖✅</div><div class="bubble">"이 오류 고쳐줘" → "여기가 문제였네요!"</div><div class="cap">③ 수정 완료</div></div>
+    </div>
+    <div class="punch">💡 디버깅 = 안 되는 곳을 찾아 고치는 과정. "안 돼요"❌ 대신 <b>콘솔의 빨간 메시지</b>⭕를 주면 한 번에 해결돼요.</div>
+  </div>
+
+  <div class="comic"><div class="word">VIBE CODING</div><div class="ctitle">🪄 바이브 코딩</div>
+    <div class="panels">
+      <div class="panel"><div class="scene">🧑‍🏫💭</div><div class="bubble">"따뜻한 느낌의 나무 의자가 필요해"</div><div class="cap">① 의도를 말로</div></div>
+      <div class="panel"><div class="scene">🪄🤖</div><div class="bubble">문법 대신 '느낌'을 AI에게 설명</div><div class="cap">② AI가 제작</div></div>
+      <div class="panel"><div class="scene">🪑✨</div><div class="bubble">뚝딱 완성! 마음에 안 들면 또 말로 수정</div><div class="cap">③ 완성·수정</div></div>
+    </div>
+    <div class="punch">💡 코드를 한 줄씩 치는 대신, <b>원하는 것을 말로 설명</b>하면 AI가 코드를 만든다. (2025년 카파시가 붙인 이름)</div>
+  </div>
+
+  <div class="comic"><div class="word">FRONTEND · BACKEND</div><div class="ctitle">🍽️ 식당으로 보는 앞단·뒷단</div>
+    <div class="panels">
+      <div class="panel"><div class="scene">🍽️🙋</div><div class="bubble">손님이 보는 '홀' = 프론트엔드(화면)</div><div class="cap">① 보이는 곳</div></div>
+      <div class="panel"><div class="scene">👨‍🍳🔥</div><div class="bubble">안 보이는 '주방' = 백엔드(저장·처리)</div><div class="cap">② 안 보이는 곳</div></div>
+      <div class="panel"><div class="scene">❓📭</div><div class="bubble">주방 없는 식당 → 데이터가 그냥 날아감</div><div class="cap">③ 함정</div></div>
+    </div>
+    <div class="punch">💡 화면=프론트, 저장·처리=백엔드. <b>둘 다 있어야</b> 앱이 데이터를 '기억'한다.</div>
+  </div>
+
+  <div class="comic"><div class="word">CONTEXT</div><div class="ctitle">🩺 컨텍스트 = 콕 집어 말하기</div>
+    <div class="panels">
+      <div class="panel"><div class="scene">🙍❓</div><div class="bubble">"아파요" → 의사: 어디가요…?</div><div class="cap">① 모호함</div></div>
+      <div class="panel"><div class="scene">🙍💬</div><div class="bubble">"어제부터 오른쪽 배가, 열도 나요"</div><div class="cap">② 구체적</div></div>
+      <div class="panel"><div class="scene">💡✅</div><div class="bubble">정확한 진단·처방</div><div class="cap">③ 명확한 답</div></div>
+    </div>
+    <div class="punch">💡 모호한 한 줄(프롬프트)보다 <b>배경·제약(컨텍스트)</b>을 주면 AI가 정확해진다.</div>
+  </div>
+
+  <div class="comic"><div class="word">TEST MODE · RULES</div><div class="ctitle">📮 테스트 모드와 보안 규칙</div>
+    <div class="panels">
+      <div class="panel"><div class="scene">🚪🔓</div><div class="bubble">테스트 모드 = 누구나 읽고 쓰는 '열린 금고'</div><div class="cap">① 위험</div></div>
+      <div class="panel"><div class="scene">📮✍️</div><div class="bubble">우체통 — 편지 넣기(쓰기)는 누구나</div><div class="cap">② 쓰기 허용</div></div>
+      <div class="panel"><div class="scene">🔑👩‍🏫</div><div class="bubble">꺼내 보기(읽기)는 우체부(교사)만</div><div class="cap">③ 읽기 차단</div></div>
+    </div>
+    <div class="punch">💡 배포 전 <b>테스트 모드를 닫고 보안 규칙(자물쇠)</b>을 채운다. 'AI가 닫았대요'를 믿지 말고 직접 확인!</div>
+  </div>
+
+  <div class="comic"><div class="word">ANONYMOUS AUTH</div><div class="ctitle">🎟️ 익명 인증</div>
+    <div class="panels">
+      <div class="panel"><div class="scene">🪪🙅</div><div class="bubble">"이름·이메일 주세요" → 부담스러워요</div><div class="cap">① 개인정보 X</div></div>
+      <div class="panel"><div class="scene">🎟️🖐️</div><div class="bubble">입장 때 손목에 '투명 도장'만 찍기</div><div class="cap">② 임시 ID</div></div>
+      <div class="panel"><div class="scene">✅🔁</div><div class="bubble">"같은 사람"인지는 알지만 누군지는 몰라</div><div class="cap">③ 중복 방지</div></div>
+    </div>
+    <div class="punch">💡 개인정보 0으로 '한 번만 제출'까지 가능. <b>학교 현장 1순위</b> 로그인 방식.</div>
+  </div>
+
+  <div class="comic"><div class="word">DEPLOY</div><div class="ctitle">🚀 배포</div>
+    <div class="panels">
+      <div class="panel"><div class="scene">💻🔒</div><div class="bubble">"내 컴퓨터에만 있어요"</div><div class="cap">① 로컬</div></div>
+      <div class="panel"><div class="scene">☁️⬆️</div><div class="bubble">인터넷(서버)에 올리면</div><div class="cap">② 배포</div></div>
+      <div class="panel"><div class="scene">🔗📱</div><div class="bubble">학생이 링크/QR로 접속!</div><div class="cap">③ 공유</div></div>
+    </div>
+    <div class="punch">💡 배포 = 내 PC의 앱에 <b>진짜 주소(URL)</b>를 붙여 누구나 접속하게 하는 것.</div>
+  </div>
+
+  <div class="comic"><div class="word">HALLUCINATION</div><div class="ctitle">🤥 할루시네이션</div>
+    <div class="panels">
+      <div class="panel"><div class="scene">🤖😎</div><div class="bubble">"완벽하게 고쳤습니다!" (자신만만)</div><div class="cap">① 큰소리</div></div>
+      <div class="panel"><div class="scene">🧐❌</div><div class="bubble">어? 실제로 눌러보니 안 되는데?</div><div class="cap">② 확인</div></div>
+      <div class="panel"><div class="scene">📱✅</div><div class="bubble">내 폰으로 직접 테스트해 검증</div><div class="cap">③ 검증</div></div>
+    </div>
+    <div class="punch">💡 AI는 그럴듯한 거짓을 자신 있게 말할 수 있다. <b>항상 직접 테스트</b>, 책임은 교사에게.</div>
+  </div>
+
+  <div class="comic"><div class="word">GIT · GITHUB</div><div class="ctitle">📸 깃 & 깃허브</div>
+    <div class="panels">
+      <div class="panel"><div class="scene">📸📝</div><div class="bubble">순간순간 사진 찍듯 기록 = Git(내 노트)</div><div class="cap">① 기록</div></div>
+      <div class="panel"><div class="scene">☁️⬆️</div><div class="bubble">온라인 작업실에 백업 = GitHub</div><div class="cap">② 공유</div></div>
+      <div class="panel"><div class="scene">👥👀</div><div class="bubble">팀이 함께 보고 협업</div><div class="cap">③ 협업</div></div>
+    </div>
+    <div class="punch">💡 <b>init·add·commit</b>은 내 노트에 기록, <b>push·pull</b>은 GitHub와 주고받기.</div>
+  </div>
+
+  <div class="comic"><div class="word">API</div><div class="ctitle">📋 API = 최신 메뉴판 가리키기</div>
+    <div class="panels">
+      <div class="panel"><div class="scene">🍴🤔</div><div class="bubble">웨이터 기억에만 맡기면 주문이 틀려요</div><div class="cap">① 모호</div></div>
+      <div class="panel"><div class="scene">📋👉</div><div class="bubble">최신 메뉴판(공식 문서)을 직접 가리키기</div><div class="cap">② 근거 제시</div></div>
+      <div class="panel"><div class="scene">✅🍽️</div><div class="bubble">정확한 주문·결과</div><div class="cap">③ 정확</div></div>
+    </div>
+    <div class="punch">💡 외부 기능(API)을 쓸 땐 <b>최신 공식 문서 URL</b>을 함께 주면 AI 실수(할루시네이션)가 준다.</div>
+  </div>
+</section>
+
+</div>
+<footer>검은 화면에서 당당한 교사 개발자 · 실습 가이드 Claude 버전 · 서울특별시교육청 연수 자료 기반 · 화면은 실제 UI를 단순화해 재현한 예시이며, 바로가기 링크는 각 서비스 공식 페이지로 연결됩니다.</footer>
+
+<script>
+(function(){
+  var T=[['A','Claude로 만들기'],['B','Firebase 상세'],['C','GitHub'],['D','배포'],['E','복사 키트'],['F','에러 사례집'],['G','개인정보'],['H','이야기 컷']];
+  var tabs=document.getElementById('tabs');
+  T.forEach(function(t,i){var b=document.createElement('button');b.className='tab'+(i===0?' on':'');b.textContent=t[0]+'. '+t[1];b.addEventListener('click',function(){show(t[0],b)});tabs.appendChild(b);});
+  function show(k,btn){document.querySelectorAll('.pane').forEach(function(p){p.classList.toggle('on',p.getAttribute('data-pane')===k)});tabs.querySelectorAll('.tab').forEach(function(x){x.classList.remove('on')});btn.classList.add('on');window.scrollTo({top:0,behavior:'smooth'});if(btn.scrollIntoView)btn.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});}
+  document.querySelectorAll('.cb').forEach(function(b){b.addEventListener('click',function(){var t=b.getAttribute('data-c');try{navigator.clipboard.writeText(t).then(function(){b.textContent='복사됨 ✓';setTimeout(function(){b.textContent='복사'},1400)}).catch(function(){b.textContent='복사됨 ✓';setTimeout(function(){b.textContent='복사'},1400)})}catch(e){}})});
+})();
+</script>

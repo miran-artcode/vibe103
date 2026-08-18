@@ -1,0 +1,533 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>실습 가이드 · 화면 따라하기</title>
+<style>
+  :root{--ink:#0f172a;--muted:#64748b;--line:#e6e8f0;--bg:#f7f8fc;--p:#4f46e5;
+    --red:#ef4444;--gblue:#1a73e8;--ggrey:#f1f3f4;--ghub:#24292f;--ggreen:#2da44e;--teal:#00c7b7;
+    --sh:0 12px 34px rgba(15,23,42,.10);--sh2:0 4px 14px rgba(15,23,42,.06);}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:var(--ink);background:var(--bg);line-height:1.65}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .wrap{max-width:920px;margin:0 auto;padding:0 18px}
+
+  header{background:linear-gradient(135deg,#0f172a,#312e81);color:#fff;padding:34px 0 26px}
+  header h1{margin:0 0 6px;font-size:26px;letter-spacing:-.5px}
+  header p{margin:0;color:#c7d2fe;font-size:14.5px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px;font-size:12.5px;color:#e0e7ff}
+  .legend b{display:inline-flex;align-items:center;gap:6px}
+  .rdot{width:14px;height:14px;border-radius:4px;border:2px solid #ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.3)}
+
+  .tabs{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);overflow-x:auto}
+  .tabs .in{display:flex;gap:4px;max-width:920px;margin:0 auto;padding:8px 14px;white-space:nowrap}
+  .tab{flex:none;border:1px solid var(--line);background:#fff;border-radius:99px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer}
+  .tab.on{background:var(--p);border-color:var(--p);color:#fff}
+  .tabs .in::-webkit-scrollbar{display:none}
+
+  section.pane{display:none;padding:26px 0 50px;animation:f .25s ease}
+  section.pane.on{display:block}
+  @keyframes f{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .ph{margin:0 0 4px;font-size:21px}
+  .psub{color:var(--muted);font-size:14px;margin:0 0 22px}
+
+  .step{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh2);padding:18px;margin:0 0 18px}
+  .sno{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--p);background:#eef0ff;border-radius:99px;padding:4px 12px;margin-bottom:12px}
+  .todo{margin:14px 0 0;padding-left:0;list-style:none;counter-reset:t;display:flex;flex-direction:column;gap:8px}
+  .todo li{counter-increment:t;display:flex;gap:11px;align-items:flex-start;font-size:14px}
+  .todo li:before{content:counter(t);flex:none;width:23px;height:23px;border-radius:7px;background:#0f172a;color:#fff;font-weight:800;font-size:12px;display:grid;place-items:center}
+
+  /* window mockup */
+  .win{border:1px solid #d8dde6;border-radius:11px;overflow:hidden;box-shadow:0 6px 20px rgba(15,23,42,.12);background:#fff}
+  .bar{display:flex;align-items:center;gap:9px;padding:8px 12px;background:#eef1f5;border-bottom:1px solid #e0e5ec}
+  .tl{display:flex;gap:5px}.tl i{width:11px;height:11px;border-radius:50%}.tl .r{background:#ff5f57}.tl .y{background:#febc2e}.tl .g{background:#28c840}
+  .url{flex:1;background:#fff;border:1px solid #dde2ea;border-radius:7px;padding:4px 11px;font-size:11.5px;color:#64748b}
+  .scr{position:relative;background:#fafbfc;padding:16px}
+
+  /* highlight + badge + tooltip */
+  .hl{outline:3px solid var(--red);outline-offset:2px;border-radius:8px;box-shadow:0 0 0 6px rgba(239,68,68,.16);position:relative}
+  .bdg{position:absolute;z-index:5;width:25px;height:25px;border-radius:50%;background:var(--red);color:#fff;font-weight:800;font-size:13px;display:grid;place-items:center;box-shadow:0 2px 8px rgba(239,68,68,.5)}
+  .ctip{display:inline-flex;align-items:center;gap:5px;background:var(--red);color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;position:absolute;z-index:5}
+
+  /* generic UI pieces */
+  .row{display:flex;gap:12px;align-items:flex-start}
+  .gbtn{display:inline-block;background:var(--gblue);color:#fff;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700}
+  .gbtn.ghost{background:#fff;color:var(--gblue);border:1px solid #d2e3fc}
+  .card-ui{background:#fff;border:1px solid #e3e8ef;border-radius:10px;padding:14px}
+  .sidebar{width:150px;flex:none;background:#fff;border-right:1px solid #e8ebf0;border-radius:8px 0 0 8px;padding:10px 8px;font-size:12.5px}
+  .sidebar .mi{padding:7px 9px;border-radius:7px;color:#3c4043;display:flex;align-items:center;gap:7px}
+  .sidebar .mi.act{background:#e8f0fe;color:#1a73e8;font-weight:700}
+  .toggle{width:38px;height:20px;border-radius:99px;background:#1a73e8;position:relative;flex:none}
+  .toggle:after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;right:2px}
+  .toggle.off{background:#bdc1c6}.toggle.off:after{right:auto;left:2px}
+  .inp{background:#fff;border:1px solid #cfd6e0;border-radius:7px;padding:9px 11px;font-size:13px;color:#1f2937}
+  .lbl{font-size:11px;color:#5f6368;margin-bottom:4px}
+
+  .codew{margin:8px 0 0;border-radius:11px;overflow:hidden;border:1px solid #1e293b}
+  .codew .ch{display:flex;justify-content:space-between;align-items:center;background:#1e293b;padding:8px 13px}
+  .codew .ct{color:#cbd5e1;font-size:12px;font-weight:700}.codew .cb{border:none;background:#334155;color:#e2e8f0;font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:7px;cursor:pointer}
+  .codew pre{margin:0;background:#0f172a;color:#e2e8f0;padding:14px 15px;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.65;white-space:pre-wrap;overflow:auto}
+
+  .note{border-radius:11px;padding:13px 15px;font-size:13.5px;margin:14px 0 0}
+  .note.warn{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+  .note.tip{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+  .note.ana{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+  .note b{font-weight:800}
+
+  .triostruct{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0 0}
+  .triostruct .c{background:#fff;border:1px solid #e3e8ef;border-radius:10px;padding:13px}
+  .triostruct .lv{font-size:10px;font-weight:800;color:var(--gblue);letter-spacing:.5px}
+  .triostruct h5{margin:5px 0 2px;font-size:14px}.triostruct p{margin:0;font-size:12px;color:var(--muted)}
+
+  .tlist{display:flex;flex-direction:column;gap:9px;margin:8px 0 0}
+  .ti{background:#fff;border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+  .ti .h{font-family:ui-monospace,monospace;font-weight:800;color:#dc2626;font-size:13px}
+  .ti .x{font-size:13px;color:#475569;margin-top:3px}
+  .chk{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:9px}
+  .chk li{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:11px;padding:12px 14px;font-size:14px}
+  .chk li:before{content:"☐";color:var(--p);font-weight:800;flex:none;font-size:16px}
+
+  footer{text-align:center;color:var(--muted);font-size:12.5px;padding:0 18px 36px;max-width:920px;margin:0 auto}
+  @media(max-width:640px){.triostruct{grid-template-columns:1fr}.sidebar{width:120px}}
+</style>
+
+<header>
+  <div class="wrap">
+    <h1>🖥️ 실습 가이드 · 화면 따라하기</h1>
+    <p>실제 화면을 그대로 보면서, <b>빨간 표시(클릭 지점)</b>와 번호 단계대로 따라오세요. 마지막 '복사 키트'에서 프롬프트·규칙·명령어를 바로 복사할 수 있어요.</p>
+    <div class="legend">
+      <b><span class="rdot"></span> = 여기를 클릭/입력</b>
+      <b>① ② ③ = 진행 순서</b>
+      <b>탭(A~G)으로 단계 이동</b>
+    </div>
+  </div>
+</header>
+
+<div class="tabs"><div class="in" id="tabs"></div></div>
+
+<div class="wrap">
+
+<!-- A. Antigravity -->
+<section class="pane on" data-pane="A">
+  <h2 class="ph">A. Antigravity로 만들고 · Git 연동</h2>
+  <p class="psub">AI 코드 에디터에서 한국어로 부탁해 만들고, 깃 저장소에 올립니다.</p>
+
+  <div class="step">
+    <div class="sno">단계 1 · 화면 구성과 첫 요청</div>
+    <div class="win">
+      <div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">Antigravity — my-first-site</div></div>
+      <div class="scr" style="background:#1e1e1e;color:#cccccc;padding:0">
+        <div style="display:flex;min-height:200px;font-size:12px">
+          <div style="width:46px;background:#333;display:flex;flex-direction:column;align-items:center;gap:14px;padding:12px 0;color:#858585">📄<br>🔍<span style="position:relative">🔀<span class="bdg" style="left:18px;top:-6px">2</span></span>🧩</div>
+          <div style="width:150px;background:#252526;padding:10px;border-right:1px solid #333">
+            <div style="color:#bbb;font-weight:700;margin-bottom:6px;position:relative">탐색기 <span class="ctip" style="left:0;top:-26px">① Open Folder</span></div>
+            <div style="color:#9cdcfe">📁 my-first-site</div>
+            <div style="padding-left:14px;color:#ce9178">📄 index.html</div>
+          </div>
+          <div style="flex:1;background:#1e1e1e;padding:12px;color:#6a9955">&lt;!-- index.html --&gt;<br><span style="color:#569cd6">&lt;h1&gt;</span>우리 반<span style="color:#569cd6">&lt;/h1&gt;</span></div>
+          <div style="width:200px;background:#252526;border-left:1px solid #333;padding:12px" class="hl">
+            <span class="bdg" style="right:-12px;top:-12px">3</span>
+            <div style="color:#bbb;font-weight:700;margin-bottom:8px">🤖 AI 채팅</div>
+            <div style="background:#0e639c;color:#fff;border-radius:8px;padding:9px;font-size:11.5px">버튼을 누르면 칭찬 문구가 뜨는 페이지를 만들어줘. 휴대폰에서도 잘 보이게.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="todo">
+      <li>왼쪽 위 <b>Open Folder</b>로 새 폴더(<span class="mono">my-first-site</span>)를 엽니다.</li>
+      <li>왼쪽 활동막대의 <b>소스 제어(🔀)</b>는 단계 2에서 사용합니다.</li>
+      <li>오른쪽 <b>AI 채팅창</b>에 한국어로 요청 → 미리보기에서 결과 확인 → 수정도 한국어로.</li>
+    </ol>
+    <div class="note ana"><b>🔎 팁</b> · "예쁘게"❌ → "흰 배경, 검정 글씨, 중앙 정렬"⭕ / 한 번에 하나씩 / '완료했습니다'를 믿지 말고 Live Server로 눈으로 확인.</div>
+  </div>
+
+  <div class="step">
+    <div class="sno">단계 2 · Git 시작 → GitHub에 올리기</div>
+    <div class="win">
+      <div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">Source Control</div></div>
+      <div class="scr" style="background:#252526;color:#ccc">
+        <div style="font-size:12px;color:#bbb;margin-bottom:10px">이 폴더에는 아직 Git 저장소가 없습니다.</div>
+        <div style="position:relative;margin-bottom:14px;display:inline-block">
+          <span class="bdg" style="left:-12px;top:-12px">1</span>
+          <span class="hl" style="display:inline-block;background:#0e639c;color:#fff;border-radius:6px;padding:9px 18px;font-size:13px;font-weight:700">Initialize Repository</span>
+        </div><br>
+        <div style="position:relative;display:inline-block">
+          <span class="bdg" style="left:-12px;top:-12px">2</span>
+          <span class="hl" style="display:inline-block;background:#2da44e;color:#fff;border-radius:6px;padding:9px 18px;font-size:13px;font-weight:700">🐙 Publish to GitHub</span>
+        </div>
+      </div>
+    </div>
+    <ol class="todo">
+      <li><b>Initialize Repository</b>를 눌러 이 폴더를 Git이 관리하게 합니다(<span class="mono">git init</span>과 동일).</li>
+      <li><b>Publish to GitHub</b>를 누르면 GitHub 로그인 창이 뜹니다(다음 단계).</li>
+    </ol>
+  </div>
+
+  <div class="step">
+    <div class="sno">단계 3 · GitHub 로그인 승인</div>
+    <div class="win">
+      <div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">GitHub 인증</div></div>
+      <div class="scr">
+        <div class="row" style="flex-wrap:wrap;gap:16px">
+          <div class="card-ui" style="position:relative">
+            <span class="bdg" style="right:-10px;top:-10px">1</span>
+            <div style="font-size:12.5px;color:#475569;margin-bottom:10px">ⓘ 확장 프로그램 'GitHub'이 로그인하려고 합니다.</div>
+            <span class="hl" style="background:#0969da;color:#fff;border-radius:7px;padding:7px 16px;font-size:13px;font-weight:700">Allow</span>
+            <span style="border:1px solid #d0d7de;border-radius:7px;padding:7px 14px;font-size:13px;margin-left:8px;color:#475569">Cancel</span>
+          </div>
+          <div class="card-ui" style="position:relative">
+            <span class="bdg" style="right:-10px;top:-10px">2</span>
+            <div style="font-size:12.5px;color:#475569">Your Code: <b class="mono">3E66-5C31</b></div>
+            <div style="font-size:11.5px;color:#94a3b8;margin:5px 0 10px">코드를 복사해 GitHub에 붙여넣어 인증을 마칩니다.</div>
+            <span class="hl" style="background:#0969da;color:#fff;border-radius:7px;padding:7px 16px;font-size:13px;font-weight:700">Copy &amp; Continue to GitHub</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="todo">
+      <li><b>Allow</b>를 눌러 GitHub 로그인을 허용합니다.</li>
+      <li><b>Copy &amp; Continue to GitHub</b>로 일회용 코드를 복사하고 브라우저에서 붙여넣어 인증 완료.</li>
+      <li>처음이면 사용자 이름·이메일을 물을 수 있어요(<span class="mono">git config user.name / user.email</span>).</li>
+    </ol>
+    <div class="note tip"><b>💡 명령어를 몰라도 됩니다</b> · 위 GUI 버튼이 곧 <span class="mono">git init → add → commit → push</span>입니다. 커밋 메시지도 AI 채팅에 "지금까지 작업을 GitHub에 push해줘"라고 부탁하면 자동 실행됩니다.</div>
+  </div>
+</section>
+
+<!-- B. Firebase 프로젝트 -->
+<section class="pane" data-pane="B">
+  <h2 class="ph">B. Firebase 프로젝트 만들기</h2>
+  <p class="psub">데이터 저장·로그인·배포를 빌려 쓸 '백엔드 그릇'을 만듭니다.</p>
+  <div class="step">
+    <div class="sno">단계 1 · 콘솔에서 프로젝트 생성</div>
+    <div class="win">
+      <div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">🔒 console.firebase.google.com</div></div>
+      <div class="scr" style="background:#f1f3f4">
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div class="card-ui" style="position:relative;width:150px;text-align:center;border-style:dashed">
+            <span class="bdg" style="right:-10px;top:-10px">1</span>
+            <span class="hl" style="display:inline-block;width:100%;padding:18px 0;color:#1a73e8;font-weight:700;font-size:13px">＋ 프로젝트 만들기</span>
+          </div>
+          <div class="card-ui" style="width:150px;text-align:center;color:#9aa0a6;font-size:12px;padding:24px 0">기존 프로젝트</div>
+        </div>
+      </div>
+    </div>
+    <ol class="todo"><li>구글 계정으로 로그인 후 <b>＋ 프로젝트 만들기</b> 클릭.</li></ol>
+  </div>
+  <div class="step">
+    <div class="sno">단계 2 · 이름 입력 & 애널리틱스 끄기</div>
+    <div class="win">
+      <div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">프로젝트 만들기</div></div>
+      <div class="scr">
+        <div class="lbl">프로젝트 이름</div>
+        <div class="inp hl" style="position:relative;max-width:300px">class-4-2<span class="bdg" style="right:-10px;top:-12px">1</span></div>
+        <div style="font-size:11px;color:#94a3b8;margin:4px 0 16px">영문 소문자 + 하이픈 권장</div>
+        <div class="row" style="align-items:center;justify-content:space-between;max-width:320px;background:#f8fafc;border:1px solid #e3e8ef;border-radius:8px;padding:10px 12px;position:relative">
+          <span class="bdg" style="right:-10px;top:-12px">2</span>
+          <span style="font-size:13px">Google 애널리틱스</span>
+          <span class="toggle off hl"></span>
+        </div>
+        <div style="margin-top:16px"><span class="gbtn" style="position:relative">계속 / 프로젝트 만들기<span class="bdg" style="right:-10px;top:-12px">3</span></span></div>
+      </div>
+    </div>
+    <ol class="todo">
+      <li>이름에 <span class="mono">class-4-2</span>처럼 <b>영문 소문자+하이픈</b> 입력.</li>
+      <li><b>Google 애널리틱스</b>는 처음엔 끄기(나중에 켤 수 있음).</li>
+      <li><b>프로젝트 만들기</b> → 잠시 후 <b>계속</b>.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- C. 연결 (config) -->
+<section class="pane" data-pane="C">
+  <h2 class="ph">C. 웹앱 등록 & 설정값(config) 받기</h2>
+  <p class="psub">내가 만든 페이지를 Firebase와 연결하는 '열쇠'를 복사합니다.</p>
+  <div class="step">
+    <div class="sno">단계 1 · 웹앱 추가</div>
+    <div class="win">
+      <div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">프로젝트 개요</div></div>
+      <div class="scr" style="background:#f1f3f4">
+        <div style="font-size:13px;color:#3c4043;margin-bottom:10px">앱에 Firebase를 추가하여 시작하기</div>
+        <div class="row" style="gap:14px">
+          <span style="width:48px;height:48px;border-radius:50%;background:#fff;border:1px solid #e3e8ef;display:grid;place-items:center;color:#5f6368">iOS</span>
+          <span style="width:48px;height:48px;border-radius:50%;background:#fff;border:1px solid #e3e8ef;display:grid;place-items:center;color:#5f6368">And</span>
+          <span class="hl" style="width:48px;height:48px;border-radius:50%;background:#fff;border:1px solid #1a73e8;display:grid;place-items:center;color:#1a73e8;font-weight:800;position:relative">&lt;/&gt;<span class="bdg" style="right:-10px;top:-10px">1</span></span>
+        </div>
+        <div style="font-size:11.5px;color:#94a3b8;margin-top:8px">＜/＞ = 웹앱</div>
+      </div>
+    </div>
+    <ol class="todo"><li>프로젝트 개요에서 <b>＜/＞(웹) 아이콘</b> 클릭 → 앱 닉네임 입력 → <b>앱 등록</b>. (호스팅은 체크 안 해도 됨)</li></ol>
+  </div>
+  <div class="step">
+    <div class="sno">단계 2 · firebaseConfig 복사</div>
+    <div class="win">
+      <div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">SDK 설정 및 구성</div></div>
+      <div class="scr" style="background:#1e293b;padding:0">
+        <div class="hl" style="margin:14px;position:relative">
+          <span class="bdg" style="right:-10px;top:-12px">1</span>
+          <pre class="mono" style="margin:0;background:#0f172a;color:#e2e8f0;padding:14px;border-radius:8px;font-size:12px;line-height:1.6">const firebaseConfig = {
+  apiKey: "AIza...",
+  authDomain: "class-4-2.firebaseapp.com",
+  projectId: "class-4-2",
+  ...
+};</pre>
+        </div>
+      </div>
+    </div>
+    <ol class="todo">
+      <li>경로: <span class="mono">프로젝트 설정 → 내 앱 → SDK 설정 및 구성 → 구성</span>.</li>
+      <li><b>firebaseConfig 블록 전체를 복사</b> → AI 채팅에 붙여넣어 "이 config로 연결해줘".</li>
+    </ol>
+    <div class="note warn"><b>⚠️ 보안</b> · API 키·config는 <span class="mono">.env</span>에 저장하고 <span class="mono">.gitignore</span>에 넣어 GitHub에 올리지 마세요. Vercel 배포 시엔 환경 변수로 따로 등록합니다.</div>
+  </div>
+</section>
+
+<!-- D. 로그인 -->
+<section class="pane" data-pane="D">
+  <h2 class="ph">D. 로그인(Authentication) 켜기</h2>
+  <p class="psub">학생용 도구라면 개인정보를 안 받는 '익명 인증'을 1순위로.</p>
+  <div class="step">
+    <div class="sno">단계 1 · 로그인 방법 사용 설정</div>
+    <div class="win">
+      <div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">Authentication › Sign-in method</div></div>
+      <div class="scr" style="background:#f1f3f4;padding:0">
+        <div class="row" style="gap:0">
+          <div class="sidebar"><div class="mi act">🔑 Authentication</div><div class="mi">🗄️ Firestore</div><div class="mi">🚀 Hosting</div></div>
+          <div style="flex:1;padding:14px">
+            <div class="card-ui" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-size:13px">이메일/비밀번호</span><span class="gbtn ghost" style="padding:5px 12px">사용 설정</span></div>
+            <div class="card-ui hl" style="display:flex;align-items:center;justify-content:space-between;position:relative"><span class="bdg" style="left:-10px;top:-12px">1</span><span style="font-size:13px"><b>익명</b></span><span class="gbtn" style="padding:5px 12px">사용 설정</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="todo">
+      <li><b>Authentication → Sign-in method</b>로 이동.</li>
+      <li>학생용이면 <b>익명</b>을 사용 설정(개인정보 0). 교사 로그인이 필요하면 <b>이메일/비밀번호</b>도 켭니다.</li>
+    </ol>
+  </div>
+  <div class="step">
+    <div class="sno">단계 2 · 배포 도메인 승인</div>
+    <div class="win">
+      <div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">Authentication › Settings › 승인된 도메인</div></div>
+      <div class="scr">
+        <div class="card-ui" style="margin-bottom:8px;font-size:12.5px;color:#475569">localhost <span style="color:#94a3b8">(내 컴퓨터)</span></div>
+        <span class="hl gbtn ghost" style="position:relative">＋ 도메인 추가<span class="bdg" style="right:-10px;top:-12px">1</span></span>
+      </div>
+    </div>
+    <ol class="todo"><li>Vercel/Netlify로 배포했다면 그 도메인(<span class="mono">xxx.vercel.app</span> 등)을 <b>승인된 도메인</b>에 추가해야 로그인이 작동합니다.</li></ol>
+  </div>
+</section>
+
+<!-- E. DB + 규칙 -->
+<section class="pane" data-pane="E">
+  <h2 class="ph">E. Firestore 만들기 + 보안 규칙</h2>
+  <p class="psub">데이터를 저장하고, '활짝 열린 문'을 자물쇠로 잠급니다.</p>
+  <div class="step">
+    <div class="sno">단계 1 · 데이터베이스 만들기</div>
+    <div class="win">
+      <div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">Firestore Database</div></div>
+      <div class="scr" style="background:#f1f3f4;padding:0">
+        <div class="row" style="gap:0">
+          <div class="sidebar"><div class="mi">🔑 Authentication</div><div class="mi act" style="position:relative">🗄️ Firestore Database<span class="bdg" style="right:-8px;top:-2px">1</span></div><div class="mi">🚀 Hosting</div></div>
+          <div style="flex:1;padding:16px;text-align:center"><span class="hl gbtn" style="position:relative">데이터베이스 만들기<span class="bdg" style="right:-10px;top:-12px">2</span></span></div>
+        </div>
+      </div>
+    </div>
+    <ol class="todo"><li>왼쪽 <b>Firestore Database</b> → <b>데이터베이스 만들기</b>.</li></ol>
+  </div>
+  <div class="step">
+    <div class="sno">단계 2 · 테스트 모드 + 서울 리전</div>
+    <div class="win">
+      <div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">데이터베이스 만들기</div></div>
+      <div class="scr">
+        <div class="lbl">위치(리전)</div>
+        <div class="inp" style="max-width:300px;margin-bottom:14px">asia-northeast3 (서울)</div>
+        <div class="lbl">시작 모드</div>
+        <div class="card-ui hl" style="max-width:320px;position:relative"><span class="bdg" style="right:-10px;top:-12px">1</span><b>테스트 모드에서 시작</b><div style="font-size:11.5px;color:#94a3b8;margin-top:3px">규칙은 다음 단계에서 변경</div></div>
+        <div style="margin-top:14px"><span class="gbtn" style="position:relative">사용 설정<span class="bdg" style="right:-10px;top:-12px">2</span></span></div>
+      </div>
+    </div>
+    <ol class="todo"><li>리전은 <b>asia-northeast3(서울)</b> 권장.</li><li>일단 <b>테스트 모드</b>로 시작 → <b>사용 설정</b>.</li></ol>
+    <div class="note warn"><b>⚠️ 테스트 모드는 전체 공개</b> · 30일 후 자동 차단되지만 그 전에도 누구나 데이터를 읽고 지울 수 있습니다. 반드시 단계 3에서 규칙을 닫으세요.</div>
+  </div>
+  <div class="step">
+    <div class="sno">단계 3 · 보안 규칙 붙여넣고 게시</div>
+    <div class="win">
+      <div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">Firestore › 규칙(Rules)</div></div>
+      <div class="scr" style="background:#1e293b;padding:0">
+        <div style="display:flex;gap:14px;font-size:12px;color:#94a3b8;padding:10px 14px 0"><span>데이터</span><span class="hl" style="color:#fff;font-weight:700;position:relative;padding:2px 4px">규칙<span class="bdg" style="right:-12px;top:-12px">1</span></span><span>색인</span></div>
+        <pre class="mono" style="margin:12px 14px;background:#0f172a;color:#e2e8f0;padding:13px;border-radius:8px;font-size:11.5px;line-height:1.6">rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    match /posts/{id} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if false;
+    }
+  }
+}</pre>
+        <div style="padding:0 14px 14px"><span class="hl" style="background:#1a73e8;color:#fff;border-radius:7px;padding:8px 16px;font-size:13px;font-weight:700;position:relative">게시(Publish)<span class="bdg" style="right:-10px;top:-12px">2</span></span></div>
+      </div>
+    </div>
+    <ol class="todo">
+      <li><b>규칙(Rules)</b> 탭으로 이동해 위 규칙을 붙여넣습니다(전체 키트는 G탭).</li>
+      <li><b>게시(Publish)</b>를 눌러야 실제로 적용됩니다.</li>
+    </ol>
+    <div class="triostruct">
+      <div class="c"><div class="lv">LEVEL 1 · Collection</div><h5>엑셀의 시트</h5><p>예: posts, attendance</p></div>
+      <div class="c"><div class="lv">LEVEL 2 · Document</div><h5>엑셀의 행</h5><p>응답 1건</p></div>
+      <div class="c"><div class="lv">LEVEL 3 · Field</div><h5>실제 데이터</h5><p>내용·제출시간</p></div>
+    </div>
+    <div class="note ana"><b>🔎 우체통 비유</b> · 누구나 편지를 넣지만(쓰기·create), 꺼내 보는 건(읽기·read) 교사만 — 위 규칙이 그걸 구현합니다. 교사는 Firebase 콘솔에서 데이터를 봅니다.</div>
+  </div>
+</section>
+
+<!-- F. 배포 -->
+<section class="pane" data-pane="F">
+  <h2 class="ph">F. 배포 — 진짜 URL 만들기</h2>
+  <p class="psub">깃허브에 올린 코드를 자동으로 인터넷 주소로 만듭니다. (둘 중 하나 선택)</p>
+  <div class="step">
+    <div class="sno">방법 ① Vercel (프레임워크에 강함)</div>
+    <div class="win">
+      <div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">🔒 vercel.com</div></div>
+      <div class="scr" style="background:#fff">
+        <div class="row" style="flex-wrap:wrap;gap:12px;align-items:center">
+          <span style="background:#000;color:#fff;border-radius:7px;padding:8px 14px;font-size:12.5px;font-weight:700;position:relative" class="hl"><span class="bdg" style="right:-10px;top:-12px">1</span>▲ Continue with GitHub</span>
+          <span style="color:#94a3b8">→</span>
+          <span class="card-ui" style="font-size:12.5px">New Project → 저장소 선택</span>
+          <span style="color:#94a3b8">→</span>
+          <span style="background:#000;color:#fff;border-radius:7px;padding:8px 14px;font-size:12.5px;font-weight:700;position:relative" class="hl"><span class="bdg" style="right:-10px;top:-12px">2</span>Deploy</span>
+        </div>
+        <div class="card-ui" style="margin-top:14px;background:#f0fdf4;border-color:#bbf7d0;font-size:12.5px;color:#166534">🎉 Congratulations! · <span class="mono">https://class-4-2.vercel.app</span></div>
+      </div>
+    </div>
+    <ol class="todo">
+      <li><b>Continue with GitHub</b>로 가입(권한 허용).</li>
+      <li><b>New Project</b>에서 저장소 선택 → 설정 기본값 → <b>Deploy</b>.</li>
+      <li>1분 뒤 <b>진짜 URL</b> 발급. (환경 변수에 firebase config를 등록)</li>
+    </ol>
+  </div>
+  <div class="step">
+    <div class="sno">방법 ② Netlify (정적 사이트·폼에 강함)</div>
+    <div class="win">
+      <div class="bar"><div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="url">🔒 netlify.com</div></div>
+      <div class="scr" style="background:#fff">
+        <div class="row" style="flex-wrap:wrap;gap:12px;align-items:center">
+          <span style="background:var(--teal);color:#06352f;border-radius:7px;padding:8px 14px;font-size:12.5px;font-weight:700">GitHub로 가입</span>
+          <span style="color:#94a3b8">→</span>
+          <span class="hl card-ui" style="font-size:12.5px;position:relative"><span class="bdg" style="right:-10px;top:-12px">1</span>Add new site → Import an existing project</span>
+          <span style="color:#94a3b8">→</span>
+          <span style="background:var(--teal);color:#06352f;border-radius:7px;padding:8px 14px;font-size:12.5px;font-weight:700;position:relative" class="hl"><span class="bdg" style="right:-10px;top:-12px">2</span>Deploy</span>
+        </div>
+        <div class="card-ui" style="margin-top:14px;background:#f0fdfa;border-color:#99f6e4;font-size:12.5px;color:#115e59"><span class="mono">https://class-4-2.netlify.app</span> 발급</div>
+      </div>
+    </div>
+    <ol class="todo">
+      <li>GitHub로 가입 → <b>Add new site → Import an existing project</b> → 저장소 선택.</li>
+      <li>빌드 명령어·출력 폴더(정적은 비워둬도 OK) → <b>Deploy</b> → <span class="mono">.netlify.app</span> URL.</li>
+    </ol>
+    <div class="note tip"><b>💡 프롬프트 팁</b> · Antigravity에 "네틀리파이에 배포할 수 있게 설정해 줘"라고 하면 <span class="mono">netlify.toml</span>을 자동 생성합니다.</div>
+  </div>
+</section>
+
+<!-- G. 키트 -->
+<section class="pane" data-pane="G">
+  <h2 class="ph">G. 복사 전용 키트</h2>
+  <p class="psub">실습 중 그대로 복사해 쓰세요. (사전준비 → 패턴 → 규칙 → 배포 → 트러블슈팅 → 체크리스트)</p>
+
+  <div class="step">
+    <div class="sno">0 · 사전 준비물 (연수 전 미리)</div>
+    <div class="codew"><div class="ch"><span class="ct mono">터미널에 순서대로</span><button class="cb" data-c="# 1) Node.js 설치 확인 (nodejs.org에서 LTS)
+node -v
+# 2) Firebase CLI 설치
+npm install -g firebase-tools
+# 3) 설치 확인
+firebase --version">복사</button></div><pre># 1) Node.js 설치 확인 (nodejs.org에서 LTS)
+node -v
+# 2) Firebase CLI 설치
+npm install -g firebase-tools
+# 3) 설치 확인
+firebase --version</pre></div>
+  </div>
+
+  <div class="step">
+    <div class="sno">1 · 마법의 컨텍스트 패턴</div>
+    <div class="codew"><div class="ch"><span class="ct mono">AI 프롬프트 창에 붙여넣기</span><button class="cb" data-c="Firebase Firestore 사용. 서버 없는 정적 웹앱으로 만들어줘.
+로그인은 익명 인증(Anonymous Auth), 이름·이메일은 절대 받지 마.
+보안 규칙도 함께 — 테스트 모드(전체 공개) 금지, 읽기는 막아줘.
+한 사람이 짧은 시간에 중복 제출하지 못하게. 최신 공식 문서 기준으로.">복사</button></div><pre>Firebase Firestore 사용. 서버 없는 정적 웹앱으로 만들어줘.
+로그인은 익명 인증(Anonymous Auth), 이름·이메일은 절대 받지 마.
+보안 규칙도 함께 — 테스트 모드(전체 공개) 금지, 읽기는 막아줘.
+한 사람이 짧은 시간에 중복 제출하지 못하게. 최신 공식 문서 기준으로.</pre></div>
+  </div>
+
+  <div class="step">
+    <div class="sno">2 · 보안 규칙 (Rules 탭 → 붙여넣고 게시)</div>
+    <div class="codew"><div class="ch"><span class="ct mono">firestore.rules</span><button class="cb" data-c="rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    match /posts/{id} {
+      // 익명 로그인한 사람만 쓰기
+      allow create: if request.auth != null;
+      // 앱에서 읽기/수정 차단 (교사는 콘솔에서 열람)
+      allow read, update, delete: if false;
+    }
+  }
+}">복사</button></div><pre>rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    match /posts/{id} {
+      // 익명 로그인한 사람만 쓰기
+      allow create: if request.auth != null;
+      // 앱에서 읽기/수정 차단 (교사는 콘솔에서 열람)
+      allow read, update, delete: if false;
+    }
+  }
+}</pre></div>
+  </div>
+
+  <div class="step">
+    <div class="sno">3 · 배포 명령어 3줄</div>
+    <div class="codew"><div class="ch"><span class="ct mono">내보낸 폴더에서 터미널</span><button class="cb" data-c="firebase login
+firebase init hosting
+firebase deploy">복사</button></div><pre>firebase login
+firebase init hosting
+firebase deploy</pre></div>
+    <div class="note tip"><b>출력</b> · 마지막 줄에 <span class="mono">Hosting URL: https://◯◯◯.web.app</span> 가 나옵니다.</div>
+  </div>
+
+  <div class="step">
+    <div class="sno">4 · 막힐 때 — 트러블슈팅</div>
+    <div class="tlist">
+      <div class="ti"><div class="h mono">command not found: firebase</div><div class="x">CLI 미설치 → <span class="mono">npm install -g firebase-tools</span></div></div>
+      <div class="ti"><div class="h">권한 / 로그인 오류</div><div class="x"><span class="mono">firebase login</span> 다시 → 브라우저에서 구글 계정 승인</div></div>
+      <div class="ti"><div class="h">빈 화면만 나온다</div><div class="x">init에서 public 폴더를 <span class="mono">dist/build</span>로 맞췄는지 확인</div></div>
+      <div class="ti"><div class="h">App Hosting 하라며 카드 요구</div><div class="x">우리는 '클래식 Hosting' — '정적 앱'으로 만들었는지 재확인</div></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="sno">5 · 배포 전 체크리스트</div>
+    <ul class="chk">
+      <li>개인정보를 '최소 수집(익명)'으로 설계했는가?</li>
+      <li>Firebase '테스트 모드(전체 공개)'를 닫았는가?</li>
+      <li>내 폰·옆 사람 폰에서 의도대로 작동하는가?</li>
+      <li><span class="mono">.env</span>가 <span class="mono">.gitignore</span>에 들어 있는가?</li>
+      <li>무료 한도 대비 <b>예산 알림(Budget Alert)</b>을 설정했는가?</li>
+    </ul>
+  </div>
+</section>
+
+</div>
+<footer>검은 화면에서 당당한 교사 개발자 · 실습 가이드 &amp; 키트 · 서울특별시교육청 연수 자료 기반 · 화면은 실제 UI를 단순화해 재현한 예시입니다.</footer>
+
+<script>
+(function(){
+  var T=[['A','만들기·Git'],['B','프로젝트'],['C','연결'],['D','로그인'],['E','DB·규칙'],['F','배포'],['G','복사 키트']];
+  var tabs=document.getElementById('tabs');
+  T.forEach(function(t,i){var b=document.createElement('button');b.className='tab'+(i===0?' on':'');b.textContent=t[0]+'. '+t[1];b.addEventListener('click',function(){show(t[0],b)});tabs.appendChild(b);});
+  function show(k,btn){
+    document.querySelectorAll('.pane').forEach(function(p){p.classList.toggle('on',p.getAttribute('data-pane')===k)});
+    tabs.querySelectorAll('.tab').forEach(function(x){x.classList.remove('on')});btn.classList.add('on');
+    window.scrollTo({top:0,behavior:'smooth'});
+    if(btn.scrollIntoView)btn.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
+  }
+  document.querySelectorAll('.cb').forEach(function(b){b.addEventListener('click',function(){var t=b.getAttribute('data-c');try{navigator.clipboard.writeText(t).then(function(){b.textContent='복사됨 ✓';setTimeout(function(){b.textContent='복사'},1400)}).catch(function(){b.textContent='복사됨 ✓';setTimeout(function(){b.textContent='복사'},1400)})}catch(e){}})});
+})();
+</script>
